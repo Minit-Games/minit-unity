@@ -157,7 +157,7 @@ namespace MinitGames.Editor
             // otherwise a corrupt archive at zipPath could confuse a subsequent build run.
             try
             {
-                ZipFile.CreateFromDirectory(outputDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+                ZipFile.CreateFromDirectory(outputDir, zipPath, System.IO.Compression.CompressionLevel.Optimal, includeBaseDirectory: false);
             }
             catch
             {
