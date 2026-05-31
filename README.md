@@ -138,6 +138,30 @@ Use this when you don't have a precise readiness signal. If your game has its ow
 
 ---
 
+## WebGL template
+
+The package ships a custom Unity WebGL template named **Minit**. Select it in your project via:
+
+**Project Settings → Player → WebGL → Resolution and Presentation → WebGL Template → Minit**
+
+(The identifier shown in Player Settings is `PROJECT:Minit`.)
+
+### What it emits
+
+When Unity builds for WebGL with the Minit template selected, it produces a root `index.html` that:
+
+- **Fills the viewport** at any portrait aspect ratio (iPhone ~9:19.5 through Android ~9:21) — the canvas is `100% × 100%` with no fixed pixel dimensions, no letter-boxing, and no aspect-ratio constraint.
+- Sets `touch-action: none` on the canvas so iOS WKWebView and Android Chrome do not intercept touch events before Unity sees them.
+- Uses `viewport-fit=cover` and `user-scalable=no` so the game extends into the safe-area notch region without bounce-scrolling.
+- **Has no loader chrome** — no progress bar, no spinner, no fullscreen button, no Unity logo. The Minit platform hides Unity's boot splash behind the feed reveal; the game signals readiness by calling `Minit.LoadingDone()` (or by attaching the `MinitReady` component), at which point the platform transitions to the game.
+- **Contains no `<script>` tag for the Minit SDK.** The host app injects `window.minit` at WebView startup — the template does not need to load it. Adding a second injection here would cause conflicts.
+
+### Coming next
+
+**DROP-2022 — "Build for Minit" editor menu** will auto-select this template, configure WebGL Player Settings (portrait lock, strip engine code, etc.) and package the build output into a Minit-compliant ZIP with a single menu click. Until then, select the template manually in Player Settings and build via **File → Build Settings → WebGL → Build**.
+
+---
+
 ## Minit game rules
 
 Before uploading, make sure your WebGL build meets the Minit platform constraints:

@@ -21,9 +21,15 @@ WebGPU is **intentionally not used** — WebGL2 only. WebGPU is unreliable in iO
 
 ---
 
-## Package layout
+## Project layout
 
 ```
+Assets/
+└── WebGLTemplates/
+    └── Minit/
+        └── index.html        Custom WebGL template — viewport-filling canvas, no loader chrome, touch-action:none.
+                              Select in Player Settings → WebGL → Resolution and Presentation → WebGL Template → Minit.
+
 Packages/games.minit.unity/
 ├── package.json              (name: games.minit.unity, version: 0.1.0, unity: 6000.0)
 ├── Runtime/
@@ -55,11 +61,12 @@ There is no automated C# test suite. Validation steps:
 
 1. Open the project in Unity 6000.3.x.
 2. Open the scene under `Assets/` and enter Play Mode — verify that `Minit.LoadingDone()` and `Minit.ReportResult(...)` log to the Console without errors.
-3. Build for WebGL (File → Build Settings → WebGL → Build).
-4. Upload the resulting ZIP to the Minit creator console (dev environment).
-5. Play the game inside the Minit feed and confirm: the game is hidden during boot (until `loadingDone` fires), then revealed; `reportResult` triggers the result screen with the correct score and flavor text.
+3. In **Project Settings → Player → WebGL → Resolution and Presentation → WebGL Template**, select **Minit**. The identifier is `PROJECT:Minit`. Confirm no compile errors appear.
+4. Build for WebGL (File → Build Settings → WebGL → Build). Inspect the emitted `index.html` — it should have no progress bar / loader / footer markup and should contain the correct `{{{ LOADER_FILENAME }}}` / `{{{ DATA_FILENAME }}}` / `{{{ FRAMEWORK_FILENAME }}}` macro substitutions.
+5. Upload the resulting ZIP to the Minit creator console (dev environment).
+6. Play the game inside the Minit feed and confirm: the game is hidden during boot (until `loadingDone` fires), then revealed; `reportResult` triggers the result screen with the correct score and flavor text.
 
-The **"Build for Minit" editor menu** (one-click ZIP packaging) is planned in DROP-2022 — it will replace step 3–4 once available.
+The **"Build for Minit" editor menu** (one-click ZIP packaging) is planned in DROP-2022 — it will replace steps 4–5 once available.
 
 When checking device behaviour, also verify portrait orientation and touch-only input on a real mobile device or iOS Simulator.
 
