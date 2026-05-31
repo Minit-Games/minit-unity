@@ -1,0 +1,11 @@
+{
+  "name": "games.minit.unity",
+  "version": "0.1.0",
+  "displayName": "Minit Games SDK",
+  "description": "Unity → Minit export bridge (reportResult / loadingDone / config) for building Minit-compatible WebGL games.",
+  "unity": "6000.0",
+  "license": "UNLICENSED",
+  "author": {
+    "name": "Drop GmbH"
+  }
+}
