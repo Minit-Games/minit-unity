@@ -25,7 +25,7 @@ Install via UPM Git URL:
 2. Click **+ → Add package from git URL…**
 3. Paste:
    ```
-   https://github.com/Minit-Games/minit-unity.git?path=/Packages/com.minit.unity
+   https://github.com/Minit-Games/minit-unity.git?path=/Packages/games.minit.unity
    ```
 4. Click **Add**.
 

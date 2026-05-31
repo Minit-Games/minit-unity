@@ -24,8 +24,8 @@ WebGPU is **intentionally not used** — WebGL2 only. WebGPU is unreliable in iO
 ## Package layout
 
 ```
-Packages/com.minit.unity/
-├── package.json              (name: com.minit.unity, version: 0.1.0, unity: 6000.0)
+Packages/games.minit.unity/
+├── package.json              (name: games.minit.unity, version: 0.1.0, unity: 6000.0)
 ├── Runtime/
 │   ├── Minit.cs              static facade — ReportResult / LoadingDone / GetConfigValue
 │   ├── MinitReady.cs         drop-in MonoBehaviour that fires LoadingDone on first frame

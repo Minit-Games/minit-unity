@@ -1,5 +1,5 @@
 {
-  "name": "com.minit.unity",
+  "name": "games.minit.unity",
   "version": "0.1.0",
   "displayName": "Minit Games SDK",
   "description": "Unity → Minit export bridge (reportResult / loadingDone / config) for building Minit-compatible WebGL games.",
