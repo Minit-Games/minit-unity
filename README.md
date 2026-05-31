@@ -37,6 +37,7 @@ Unity will download the package and add it to your project's `Packages/` manifes
 
 ```csharp
 using UnityEngine;
+using MinitGames;
 
 public class GameController : MonoBehaviour
 {
@@ -45,6 +46,8 @@ public class GameController : MonoBehaviour
     private void Start()
     {
         // Tell the Minit platform the game has loaded and is ready to be shown.
+        // Call this after assets are loaded and the first real frame is ready — not
+        // necessarily in Start() (which fires before the first rendered frame).
         // Until this call, the platform hides Unity's boot splash behind the feed reveal.
         Minit.LoadingDone();
     }
@@ -74,7 +77,9 @@ If you don't need to control the exact moment the game is ready, attach the `Min
 public static void LoadingDone()
 ```
 
-Signals the host that the game has finished booting and is ready to be revealed to the player. The Minit feed hides Unity's boot splash until this fires — call it as early as your first real interactive frame (assets loaded, scene ready). Call exactly once per session.
+Signals the host that the game has finished booting and is ready to be revealed to the player. The Minit feed hides Unity's boot splash until this fires — call it after assets are loaded and the first real frame is ready (not necessarily in `Start()`, which fires before the first rendered frame). Call exactly once per session.
+
+If your game doesn't have a precise readiness point, use the `MinitReady` component instead — it calls `LoadingDone()` on the first Update frame automatically.
 
 In the editor and in non-WebGL builds, this logs `[Minit] LoadingDone()` to the Console instead.
 
@@ -86,7 +91,7 @@ In the editor and in non-WebGL builds, this logs `[Minit] LoadingDone()` to the 
 public static void ReportResult(double score, string flavorText = null, int delay = 0)
 ```
 
-Submits the final result and triggers the Minit result screen. Call exactly once when the game ends.
+Submits the final result and triggers the Minit result screen. Call exactly once when the game ends — the host ignores repeat calls.
 
 | Parameter | Type | Description |
 |---|---|---|
@@ -104,14 +109,18 @@ In the editor and in non-WebGL builds, this logs to the Console instead of posti
 public static string GetConfigValue(string key, string defaultValue = "")
 ```
 
-Reads a host-injected config value by key. Config values are always strings — coerce to your target type yourself.
+Reads a config value by key. Config values are delivered as URL query parameters on the game's URL — the same mechanism the JavaScript SDK uses — so the behaviour is identical regardless of which SDK a game uses. Values are always strings — coerce to your target type yourself.
+
+The key `"userData"` is reserved by the platform and always returns `defaultValue`.
 
 | Parameter | Type | Description |
 |---|---|---|
 | `key` | `string` | The config key to look up. |
-| `defaultValue` | `string` | Returned when the key is absent or the game is running outside the Minit host. |
+| `defaultValue` | `string` | Returned when the key is absent, reserved, or the game is running outside the Minit host. |
 
 ```csharp
+using MinitGames;
+
 // Example — read a difficulty setting, default "normal"
 string difficulty = Minit.GetConfigValue("difficulty", "normal");
 
@@ -123,7 +132,7 @@ float speed = float.TryParse(Minit.GetConfigValue("speed", "1.0"), out float v) 
 
 ### `MinitReady` component
 
-A drop-in `MonoBehaviour` that calls `Minit.LoadingDone()` on the first Update frame after the scene loads. Attach it to any GameObject in your scene.
+A drop-in `MonoBehaviour` that calls `Minit.LoadingDone()` on the first Update frame after the scene loads. Attach it to any GameObject in your scene. Add `using MinitGames;` if you reference it from code.
 
 Use this when you don't have a precise readiness signal. If your game has its own loading gate (assets downloaded, intro animation finished, countdown started), call `Minit.LoadingDone()` directly from that point instead and leave this component off.
 

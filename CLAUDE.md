@@ -29,7 +29,7 @@ Packages/com.minit.unity/
 ├── Runtime/
 │   ├── Minit.cs              static facade — ReportResult / LoadingDone / GetConfigValue
 │   ├── MinitReady.cs         drop-in MonoBehaviour that fires LoadingDone on first frame
-│   ├── MinitBridge.jslib     JS bridge: calls window.minit.reportResult / loadingDone / dropConfig
+│   ├── MinitBridge.jslib     JS bridge: calls window.minit.reportResult / loadingDone; reads config from URLSearchParams
 │   └── Minit.Runtime.asmdef  assembly definition (no editor-only references)
 ```
 
@@ -40,6 +40,10 @@ Packages/com.minit.unity/
 ## Design decisions
 
 **No `@minit-games/sdk` npm dependency.** The bridge calls `window.minit` directly from `MinitBridge.jslib`. This keeps the Unity package self-contained — there is no npm install step, no build pipeline, and no JavaScript bundler. The C# API surface maps 1:1 to the same `window.minit` contract that the JavaScript SDK also targets, so the behaviour is identical from the host's perspective.
+
+**Namespace.** Both `Minit` and `MinitReady` live in the `MinitGames` namespace — add `using MinitGames;` to any creator script that references them.
+
+**Config source.** `Minit.GetConfigValue` reads URL query parameters (via `URLSearchParams(window.location.search)` in the jslib), mirroring the `@minit-games/sdk` JS implementation. The key `"userData"` is reserved and always returns the default value.
 
 **All calls are no-ops outside WebGL.** The `#if UNITY_WEBGL && !UNITY_EDITOR` guard means `Minit.*` calls compile to `Debug.Log(...)` in the editor and in non-WebGL build targets. Safe to call from any script regardless of build target.
 

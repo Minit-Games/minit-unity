@@ -13,11 +13,17 @@ mergeInto(LibraryManager.library, {
   MinitGetConfigValue: function (keyPtr, defaultPtr) {
     var key = UTF8ToString(keyPtr);
     var def = defaultPtr ? UTF8ToString(defaultPtr) : "";
-    var cfg = window.minit && window.minit.dropConfig;
-    var val = (cfg && cfg[key] != null) ? cfg[key] : def;
+    var val = def;
+    if (key !== "userData") { // reserved key — mirrors @minit-games/sdk
+      var params = new URLSearchParams(window.location.search);
+      if (params.has(key)) val = params.get(key);
+    }
     var size = lengthBytesUTF8(val) + 1;
     var buffer = _malloc(size);
     stringToUTF8(val, buffer, size);
-    return buffer;
+    return buffer; // caller frees via MinitFreeBuffer
+  },
+  MinitFreeBuffer: function (ptr) {
+    _free(ptr);
   }
 });
