@@ -19,6 +19,8 @@ Unity 6 is the floor because reliable mobile-browser WebGL (WKWebView on iOS, Ch
 
 WebGPU is **intentionally not used** — WebGL2 only. WebGPU is unreliable in iOS WKWebView and is not guaranteed to be available in the embedded browsers the Minit platform uses on all supported devices.
 
+**Multithreading must be OFF.** Threaded WebGL builds require `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` response headers (needed for `SharedArrayBuffer`). The Minit platform does not serve those headers, so any build with multithreading enabled will crash inside the WKWebView. Always leave **Player Settings → WebGL → Other Settings → Enable Native WebAssembly / Use Threads** disabled.
+
 ---
 
 ## Project layout
@@ -62,7 +64,7 @@ There is no automated C# test suite. Validation steps:
 1. Open the project in Unity 6000.3.x.
 2. Open the scene under `Assets/` and enter Play Mode — verify that `Minit.LoadingDone()` and `Minit.ReportResult(...)` log to the Console without errors.
 3. In **Project Settings → Player → WebGL → Resolution and Presentation → WebGL Template**, select **Minit**. The identifier is `PROJECT:Minit`. Confirm no compile errors appear.
-4. Build for WebGL (File → Build Settings → WebGL → Build). Inspect the emitted `index.html` — it should have no progress bar / loader / footer markup and should contain the correct `{{{ LOADER_FILENAME }}}` / `{{{ DATA_FILENAME }}}` / `{{{ FRAMEWORK_FILENAME }}}` macro substitutions.
+4. Build for WebGL (File → Build Settings → WebGL → Build). Inspect the emitted `index.html` — it should have no progress bar / loader / footer markup and should contain the **actual filenames** that Unity substituted for the template macros (e.g. `game.loader.js`, `game.data`, `game.framework.js`). The raw `{{{ LOADER_FILENAME }}}` / `{{{ DATA_FILENAME }}}` / `{{{ FRAMEWORK_FILENAME }}}` placeholders are replaced during the build; they must NOT appear in the output file.
 5. Upload the resulting ZIP to the Minit creator console (dev environment).
 6. Play the game inside the Minit feed and confirm: the game is hidden during boot (until `loadingDone` fires), then revealed; `reportResult` triggers the result screen with the correct score and flavor text.
 

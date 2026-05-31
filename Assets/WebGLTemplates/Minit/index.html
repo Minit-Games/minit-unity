@@ -20,15 +20,16 @@
         width: 100%;
         height: 100%;
         touch-action: none;
+        background: #000;
       }
     </style>
   </head>
   <body>
     <canvas id="unity-canvas" tabindex="-1"></canvas>
     <script>
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
-      var config = {
+      const buildUrl = "Build";
+      const loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+      const config = {
         arguments: [],
         dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
         frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
@@ -47,9 +48,10 @@
         productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
       };
 
-      var canvas = document.querySelector("#unity-canvas");
-      var script = document.createElement("script");
+      const canvas = document.querySelector("#unity-canvas");
+      const script = document.createElement("script");
       script.src = loaderUrl;
+      script.onerror = function () { console.error("[Minit] Failed to load Unity loader:", loaderUrl); };
       script.onload = () => {
         createUnityInstance(canvas, config, (_progress) => {
           // No loading UI — the Minit platform hides the boot behind the feed reveal.

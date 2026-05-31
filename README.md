@@ -31,6 +31,11 @@ Install via UPM Git URL:
 
 Unity will download the package and add it to your project's `Packages/` manifest.
 
+> **Important — select the Minit WebGL template before building.**
+> After installation, go to **Project Settings → Player → WebGL → Resolution and Presentation → WebGL Template** and select **Minit** (shown as `PROJECT:Minit`).
+> Without this step Unity uses its Default template, which adds a progress bar, a fullscreen button, and a fixed-size canvas — none of which are compatible with the Minit platform.
+> See the [WebGL template](#webgl-template) section below for full details.
+
 ---
 
 ## Quick start
@@ -174,6 +179,7 @@ Before uploading, make sure your WebGL build meets the Minit platform constraint
 | **ZIP structure** | `index.html` at the ZIP root (not inside a subfolder) |
 | **Size** | ≤ 50 MB uncompressed |
 | **Loading** | No in-game loading screen — use `Minit.LoadingDone()` to signal readiness; the platform handles the reveal transition |
+| **Multithreading** | **Disabled** — leave WebGL multithreading OFF in Player Settings. Threaded builds require `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` headers (`SharedArrayBuffer`); the Minit platform does not serve those headers, so threaded builds will crash in WKWebView. |
 
 The `loadingDone` signal is the loading gate. Until it fires, the platform keeps Unity's boot splash hidden. Do not show your own loading bar inside the Unity scene.
 
@@ -183,5 +189,4 @@ The `loadingDone` signal is the loading gate. Until it fires, the platform keeps
 
 The following features are planned and will land in upcoming releases:
 
-- **Minit WebGL template** (DROP-2021) — a custom Unity WebGL template that injects the `window.minit` host bridge stubs so you can test the full `reportResult` / `loadingDone` flow locally inside the Unity Play Mode or a local browser without needing the Minit app.
 - **"Build for Minit" editor menu** (DROP-2022) — a one-click Unity editor menu item that builds WebGL with the correct settings and packages the output into a Minit-compliant ZIP, ready to upload to the Minit creator console.
