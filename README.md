@@ -31,6 +31,11 @@ Install via UPM Git URL:
 
 Unity will download the package and add it to your project's `Packages/` manifest.
 
+> **Important — select the Minit WebGL template before building.**
+> After installation, go to **Project Settings → Player → WebGL → Resolution and Presentation → WebGL Template** and select **Minit** (shown as `PROJECT:Minit`).
+> Without this step Unity uses its Default template, which adds a progress bar, a fullscreen button, and a fixed-size canvas — none of which are compatible with the Minit platform.
+> See the [WebGL template](#webgl-template) section below for full details.
+
 ---
 
 ## Quick start
@@ -138,6 +143,30 @@ Use this when you don't have a precise readiness signal. If your game has its ow
 
 ---
 
+## WebGL template
+
+The package ships a custom Unity WebGL template named **Minit**. Select it in your project via:
+
+**Project Settings → Player → WebGL → Resolution and Presentation → WebGL Template → Minit**
+
+(The identifier shown in Player Settings is `PROJECT:Minit`.)
+
+### What it emits
+
+When Unity builds for WebGL with the Minit template selected, it produces a root `index.html` that:
+
+- **Fills the viewport** at any portrait aspect ratio (iPhone ~9:19.5 through Android ~9:21) — the canvas is `100% × 100%` with no fixed pixel dimensions, no letter-boxing, and no aspect-ratio constraint.
+- Sets `touch-action: none` on the canvas so iOS WKWebView and Android Chrome do not intercept touch events before Unity sees them.
+- Uses `viewport-fit=cover` and `user-scalable=no` so the game extends into the safe-area notch region without bounce-scrolling.
+- **Has no loader chrome** — no progress bar, no spinner, no fullscreen button, no Unity logo. The Minit platform hides Unity's boot splash behind the feed reveal; the game signals readiness by calling `Minit.LoadingDone()` (or by attaching the `MinitReady` component), at which point the platform transitions to the game.
+- **Contains no `<script>` tag for the Minit SDK.** The host app injects `window.minit` at WebView startup — the template does not need to load it. Adding a second injection here would cause conflicts.
+
+### Coming next
+
+**DROP-2022 — "Build for Minit" editor menu** will auto-select this template, configure WebGL Player Settings (portrait lock, strip engine code, etc.) and package the build output into a Minit-compliant ZIP with a single menu click. Until then, select the template manually in Player Settings and build via **File → Build Settings → WebGL → Build**.
+
+---
+
 ## Minit game rules
 
 Before uploading, make sure your WebGL build meets the Minit platform constraints:
@@ -150,6 +179,7 @@ Before uploading, make sure your WebGL build meets the Minit platform constraint
 | **ZIP structure** | `index.html` at the ZIP root (not inside a subfolder) |
 | **Size** | ≤ 50 MB uncompressed |
 | **Loading** | No in-game loading screen — use `Minit.LoadingDone()` to signal readiness; the platform handles the reveal transition |
+| **Multithreading** | **Disabled** — leave WebGL multithreading OFF in Player Settings. Threaded builds require `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` headers (`SharedArrayBuffer`); the Minit platform does not serve those headers, so threaded builds will crash in WKWebView. |
 
 The `loadingDone` signal is the loading gate. Until it fires, the platform keeps Unity's boot splash hidden. Do not show your own loading bar inside the Unity scene.
 
@@ -159,5 +189,4 @@ The `loadingDone` signal is the loading gate. Until it fires, the platform keeps
 
 The following features are planned and will land in upcoming releases:
 
-- **Minit WebGL template** (DROP-2021) — a custom Unity WebGL template that injects the `window.minit` host bridge stubs so you can test the full `reportResult` / `loadingDone` flow locally inside the Unity Play Mode or a local browser without needing the Minit app.
 - **"Build for Minit" editor menu** (DROP-2022) — a one-click Unity editor menu item that builds WebGL with the correct settings and packages the output into a Minit-compliant ZIP, ready to upload to the Minit creator console.
