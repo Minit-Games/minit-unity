@@ -52,3 +52,9 @@ sysinfo.txt
 
 # Crashlytics / Gradle / misc
 .gradle/
+
+# UPM sample folders use the `~` suffix (Unity ignores them by convention).
+# A global `*~` excludesfile (editor backup pattern) would otherwise hide them
+# from git — re-include the package's Samples~ tree explicitly.
+!Packages/games.minit.unity/Samples~/
+!Packages/games.minit.unity/Samples~/**
