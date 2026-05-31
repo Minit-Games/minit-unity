@@ -153,7 +153,18 @@ namespace MinitGames.Editor
                 File.Delete(zipPath);
 
             // includeBaseDirectory: false → index.html is at the archive root.
-            ZipFile.CreateFromDirectory(outputDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+            // Wrap in try/catch so a partial/corrupt ZIP is removed before rethrowing —
+            // otherwise a corrupt archive at zipPath could confuse a subsequent build run.
+            try
+            {
+                ZipFile.CreateFromDirectory(outputDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+            }
+            catch
+            {
+                if (File.Exists(zipPath))
+                    File.Delete(zipPath);
+                throw;
+            }
 
             // ── 7. Report size ───────────────────────────────────────────────────────
             long   zipBytes = new FileInfo(zipPath).Length;

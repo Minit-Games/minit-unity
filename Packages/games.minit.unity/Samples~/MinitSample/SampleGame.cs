@@ -45,17 +45,12 @@ namespace MinitGames.Sample
             // Count the time remaining.
             _timeLeft -= Time.deltaTime;
 
-            // Detect taps: legacy Input works for both mouse clicks (desktop/editor)
-            // and touch events on mobile without any extra package.
+            // Detect taps via mouse-button-0: on WebGL this fires once per tap for both
+            // mouse clicks (desktop/editor) and single-finger touch (mobile WebGL).
+            // Do NOT also loop Input.GetTouch — on WebGL the first touch is exposed as
+            // BOTH mouse-button-0 and touch[0], so combining both would double-count.
             if (Input.GetMouseButtonDown(0))
                 _taps++;
-
-            // Also count additional touch points so multi-touch counts each finger.
-            for (int i = 0; i < Input.touchCount; i++)
-            {
-                if (Input.GetTouch(i).phase == TouchPhase.Began)
-                    _taps++;
-            }
 
             if (_timeLeft <= 0f)
                 EndGame();
