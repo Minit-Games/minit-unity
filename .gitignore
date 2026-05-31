@@ -1,0 +1,54 @@
+# Unity generated / local-only folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]server[Dd]ata/
+[Uu]serSettings/
+[Mm]emoryCaptures/
+
+# Asset meta data should only be ignored when the corresponding asset is also ignored
+!/[Aa]ssets/**/*.meta
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D generated file on crash reports
+sysinfo.txt
+
+# Builds / packaged output
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Minit build output (the zipped WebGL bundle produced by "Build for Minit")
+[Mm]init[Ww]eb[Gg][Ll]/
+*_minit.zip
+
+# IDE / tooling
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.booproj
+*.svd
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Crashlytics / Gradle / misc
+.gradle/
