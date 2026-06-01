@@ -76,9 +76,12 @@ namespace MinitGames.Editor
             // VERIFY: WebGLCompressionFormat enum — confirmed in Unity 6000.0 docs.
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
 
-            // No decompression fallback: we only target Brotli-capable browsers
-            // (Chrome, Safari 17+, Firefox). A fallback bundle doubles build output size.
-            PlayerSettings.WebGL.decompressionFallback = false;
+            // Decompression fallback ON: the Minit platform serves bundle files from S3/CloudFront
+            // WITHOUT a Content-Encoding header, so the browser cannot decompress *.br files
+            // natively. Unity's JS decompressor must be bundled to decompress Brotli files
+            // client-side. Brotli compression is kept (files stay small on the wire); only the
+            // small JS decompressor shim is added to the build output.
+            PlayerSettings.WebGL.decompressionFallback = true;
 
             // No C# exceptions: reduces code size substantially; games should not throw.
             // VERIFY: WebGLExceptionSupport.None — confirmed in Unity 6000.0 docs.

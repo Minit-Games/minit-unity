@@ -209,7 +209,7 @@ Upload the resulting ZIP directly to the [Minit creator console](https://console
 |---|---|---|
 | **WebGL template** | `PROJECT:Minit` | The Minit template produces a viewport-filling, chrome-free canvas required by the platform. |
 | **Compression format** | Brotli | Smallest transfer size; supported natively by all modern mobile browsers (Chrome, Safari 17+, Firefox). |
-| **Decompression fallback** | Off | A fallback bundle doubles build output; disable it to stay under the 50 MB cap. |
+| **Decompression fallback** | On | The Minit platform serves bundle files from S3/CloudFront without a `Content-Encoding` header, so Brotli `*.br` files must be decompressed client-side by Unity's bundled JS decompressor. |
 | **Exception support** | None | Removes substantial generated code; games should not throw managed exceptions in release. |
 | **Data caching (IndexedDB)** | Off | The Minit platform forbids persistent client-side storage (localStorage, sessionStorage, IndexedDB). |
 | **Linker target** | Wasm | Single-threaded Wasm is the only output that runs inside WKWebView without COOP/COEP headers. |
