@@ -7,5 +7,12 @@
   "license": "UNLICENSED",
   "author": {
     "name": "Drop GmbH"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Minit Sample",
+      "description": "A minimal tap-to-score game demonstrating LoadingDone, ReportResult, and the Build for Minit workflow.",
+      "path": "Samples~/MinitSample"
+    }
+  ]
 }

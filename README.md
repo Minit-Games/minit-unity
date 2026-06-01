@@ -31,9 +31,10 @@ Install via UPM Git URL:
 
 Unity will download the package and add it to your project's `Packages/` manifest.
 
-> **Important — select the Minit WebGL template before building.**
-> After installation, go to **Project Settings → Player → WebGL → Resolution and Presentation → WebGL Template** and select **Minit** (shown as `PROJECT:Minit`).
-> Without this step Unity uses its Default template, which adds a progress bar, a fullscreen button, and a fixed-size canvas — none of which are compatible with the Minit platform.
+> **Note — WebGL template selection.**
+> **Minit → Build for Minit** (see the [Build for Minit](#build-for-minit) section) selects the Minit template automatically — no manual step needed.
+> If you build via Unity's own **File → Build Settings** instead, go to **Project Settings → Player → WebGL → Resolution and Presentation → WebGL Template** and select **Minit** (`PROJECT:Minit`) before building.
+> Without the Minit template Unity uses its Default template, which adds a progress bar, a fullscreen button, and a fixed-size canvas — none of which are compatible with the Minit platform.
 > See the [WebGL template](#webgl-template) section below for full details.
 
 ---
@@ -161,9 +162,9 @@ When Unity builds for WebGL with the Minit template selected, it produces a root
 - **Has no loader chrome** — no progress bar, no spinner, no fullscreen button, no Unity logo. The Minit platform hides Unity's boot splash behind the feed reveal; the game signals readiness by calling `Minit.LoadingDone()` (or by attaching the `MinitReady` component), at which point the platform transitions to the game.
 - **Contains no `<script>` tag for the Minit SDK.** The host app injects `window.minit` at WebView startup — the template does not need to load it. Adding a second injection here would cause conflicts.
 
-### Coming next
+### Build for Minit
 
-**DROP-2022 — "Build for Minit" editor menu** will auto-select this template, configure WebGL Player Settings (portrait lock, strip engine code, etc.) and package the build output into a Minit-compliant ZIP with a single menu click. Until then, select the template manually in Player Settings and build via **File → Build Settings → WebGL → Build**.
+Use the **Minit → Build for Minit** menu item (see the [Build for Minit](#build-for-minit) section below) to apply all Player Settings and produce a compliant ZIP in one click — you no longer need to configure the template manually.
 
 ---
 
@@ -177,7 +178,7 @@ Before uploading, make sure your WebGL build meets the Minit platform constraint
 | **Input** | Touch / tap only — no keyboard or mouse expected |
 | **Storage** | No `localStorage`, `sessionStorage`, `IndexedDB`, or cross-origin `fetch` |
 | **ZIP structure** | `index.html` at the ZIP root (not inside a subfolder) |
-| **Size** | ≤ 50 MB uncompressed |
+| **Size** | ≤ 50 MB — the uploaded ZIP (`Build/<Product>_minit.zip`) must not exceed 50 MB (server hard limit: 52,428,800 bytes) |
 | **Loading** | No in-game loading screen — use `Minit.LoadingDone()` to signal readiness; the platform handles the reveal transition |
 | **Multithreading** | **Disabled** — leave WebGL multithreading OFF in Player Settings. Threaded builds require `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` headers (`SharedArrayBuffer`); the Minit platform does not serve those headers, so threaded builds will crash in WKWebView. |
 
@@ -185,8 +186,81 @@ The `loadingDone` signal is the loading gate. Until it fires, the platform keeps
 
 ---
 
-## Coming next
+## Build for Minit
 
-The following features are planned and will land in upcoming releases:
+> **Unity 6 (6000.0+) required.** The `Minit/Build for Minit` menu item is only available in Unity 6.
 
-- **"Build for Minit" editor menu** (DROP-2022) — a one-click Unity editor menu item that builds WebGL with the correct settings and packages the output into a Minit-compliant ZIP, ready to upload to the Minit creator console.
+### Usage
+
+Open **Minit → Build for Minit** from the Unity menu bar. The command:
+
+1. Checks that the Minit WebGL template and at least one enabled scene are present.
+2. Applies all compliant Player Settings automatically (see table below).
+3. Scans `Assets/` for `PlayerPrefs` usage and prints a warning if found.
+4. Builds WebGL to `Build/MinitWebGL/` inside your project root.
+5. Zips the build output so `index.html` is at the archive root → `Build/<ProductName>_minit.zip`.
+6. Opens Finder/Explorer at the ZIP location.
+
+Upload the resulting ZIP directly to the [Minit creator console](https://console.minit.games).
+
+### Player Settings applied
+
+| Setting | Value | Why |
+|---|---|---|
+| **WebGL template** | `PROJECT:Minit` | The Minit template produces a viewport-filling, chrome-free canvas required by the platform. |
+| **Compression format** | Brotli | Smallest transfer size; supported natively by all modern mobile browsers (Chrome, Safari 17+, Firefox). |
+| **Decompression fallback** | On | The Minit platform serves bundle files from S3/CloudFront without a `Content-Encoding` header, so Brotli `*.br` files must be decompressed client-side by Unity's bundled JS decompressor. |
+| **Exception support** | None | Removes substantial generated code; games should not throw managed exceptions in release. |
+| **Data caching (IndexedDB)** | Off | The Minit platform forbids persistent client-side storage (localStorage, sessionStorage, IndexedDB). |
+| **Linker target** | Wasm | Single-threaded Wasm is the only output that runs inside WKWebView without COOP/COEP headers. |
+| **Scripting backend** | IL2CPP | Better runtime performance and smaller binary than Mono for WebGL. |
+| **Managed stripping level** | High | Removes unused managed code, significantly reducing output size. |
+| **Strip engine code** | On | Removes unused Unity engine modules for a smaller binary. |
+| **Run in background** | On | Keeps the game loop alive when the browser tab loses focus — essential for `ReportResult` not to stall when the WebView is backgrounded. |
+
+### Multithreading must stay OFF
+
+Do **not** enable WebGL multithreading in Player Settings. Threaded builds require `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` headers (`SharedArrayBuffer`). The Minit platform does not serve those headers and threaded builds will crash inside WKWebView.
+
+### PlayerPrefs warning
+
+Before building, the tool scans all `.cs` files under `Assets/` for the string `PlayerPrefs`. If found, it logs a **non-blocking** warning listing the affected files. `PlayerPrefs` maps to `localStorage`, which is forbidden on the Minit platform — replace any usage with in-memory state or `Minit.GetConfigValue()`.
+
+### Output location
+
+```
+<project-root>/
+  Build/
+    MinitWebGL/          ← raw WebGL build (auto-cleaned on each run)
+    <ProductName>_minit.zip  ← upload this to the creator console
+```
+
+`<ProductName>` is taken from **Project Settings → Player → Product Name**, with spaces and special characters replaced by underscores.
+
+### Size limit
+
+If the ZIP exceeds **50 MB**, the tool logs a warning. The file is still written but the creator console will reject the upload. Reduce asset sizes or enable additional stripping to bring the build under the cap.
+
+---
+
+## Sample game
+
+The package ships a minimal **Minit Sample** to help you verify the full workflow end-to-end.
+
+**Import:**
+
+1. **Window → Package Manager → Minit Games SDK → Samples → Minit Sample → Import**
+2. Unity copies the sample to `Assets/Samples/Minit Games SDK/<version>/MinitSample/`.
+
+**Set up a scene:**
+
+1. Create a new scene.
+2. Add an empty GameObject named `Game`.
+3. Attach **MinitGames.Sample.SampleGame** and **MinitGames.MinitReady** to it.
+4. Save the scene and add it to Build Settings.
+
+**Build:**
+
+Run **Minit → Build for Minit**. The resulting ZIP is a valid Minit game you can upload to the creator console.
+
+See `Samples~/MinitSample/README.md` inside the package for full details.
