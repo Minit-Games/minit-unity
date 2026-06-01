@@ -1,4 +1,7 @@
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace MinitGames.Test
 {
@@ -54,10 +57,23 @@ namespace MinitGames.Test
         {
             _elapsed += Time.deltaTime;
 
-            // Mouse button 0 maps to a single touch on WebGL — do NOT also loop Input.touches
-            // because that would count the same tap twice.
-            if (Input.GetMouseButtonDown(0))
+            // Tap detection is routed through TapBegan() so the same code works regardless of
+            // whether the project uses the legacy Input Manager, the Input System package, or Both.
+            if (TapBegan())
                 _taps++;
+        }
+
+        // Returns true on the frame a primary tap/click begins.
+        // Works with legacy Input Manager, Input System package, or Both.
+        private static bool TapBegan()
+        {
+#if ENABLE_INPUT_SYSTEM
+            return Pointer.current != null && Pointer.current.press.wasPressedThisFrame;
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetMouseButtonDown(0);
+#else
+            return false;
+#endif
         }
 
         private void OnGUI()

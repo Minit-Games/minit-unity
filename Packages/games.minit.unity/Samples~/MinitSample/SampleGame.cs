@@ -1,4 +1,7 @@
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace MinitGames.Sample
 {
@@ -45,15 +48,28 @@ namespace MinitGames.Sample
             // Count the time remaining.
             _timeLeft -= Time.deltaTime;
 
-            // Detect taps via mouse-button-0: on WebGL this fires once per tap for both
+            // Detect taps via TapBegan(): on WebGL this fires once per tap for both
             // mouse clicks (desktop/editor) and single-finger touch (mobile WebGL).
             // Do NOT also loop Input.GetTouch — on WebGL the first touch is exposed as
-            // BOTH mouse-button-0 and touch[0], so combining both would double-count.
-            if (Input.GetMouseButtonDown(0))
+            // BOTH a pointer press and touch[0], so combining both would double-count.
+            if (TapBegan())
                 _taps++;
 
             if (_timeLeft <= 0f)
                 EndGame();
+        }
+
+        // Returns true on the frame a primary tap/click begins.
+        // Works with legacy Input Manager, Input System package, or Both.
+        private static bool TapBegan()
+        {
+#if ENABLE_INPUT_SYSTEM
+            return Pointer.current != null && Pointer.current.press.wasPressedThisFrame;
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetMouseButtonDown(0);
+#else
+            return false;
+#endif
         }
 
         private void EndGame()
