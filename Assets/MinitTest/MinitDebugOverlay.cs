@@ -80,63 +80,55 @@ namespace MinitGames.Test
         {
             EnsureStyles();
 
-            // Panel geometry — takes up most of the screen so it can't be missed
+            // Base all sizing on the short screen edge so both portrait and landscape look right.
+            int shortEdge = Mathf.Min(Screen.width, Screen.height);
+
+            // Panel geometry — centred, 92 % wide, up to 90 % tall
             float pw = Screen.width  * 0.92f;
-            float ph = Screen.height * 0.88f;
+            float ph = Screen.height * 0.90f;
             float px = (Screen.width  - pw) * 0.5f;
             float py = (Screen.height - ph) * 0.5f;
             var   panel = new Rect(px, py, pw, ph);
 
             GUI.Box(panel, GUIContent.none, _panelStyle);
 
-            // Layout inside the panel
-            float pad  = Screen.height * 0.025f;
-            float lineH = Screen.height * 0.055f;
-            float btnH  = Screen.height / 12f;
-            float x    = px + pad;
-            float w    = pw - pad * 2f;
-            float y    = py + pad;
+            // GUILayout area confined to the panel interior
+            float pad = shortEdge * 0.03f;
+            var   innerRect = new Rect(px + pad, py + pad, pw - pad * 2f, ph - pad * 2f);
+
+            GUILayout.BeginArea(innerRect);
 
             // Title
-            GUI.Label(new Rect(x, y, w, lineH * 1.4f), "MINIT DEBUG", _titleStyle);
-            y += lineH * 1.5f;
+            GUILayout.Label("MINIT DEBUG", _titleStyle);
+            GUILayout.Space(shortEdge * 0.015f);
 
             // Live status lines
-            GUI.Label(new Rect(x, y, w, lineH), $"Platform: {Application.platform}", _labelStyle);
-            y += lineH;
-            GUI.Label(new Rect(x, y, w, lineH), $"Taps: {_taps}", _labelStyle);
-            y += lineH;
-            GUI.Label(new Rect(x, y, w, lineH), $"Elapsed: {_elapsed:F1}s", _labelStyle);
-            y += lineH;
-            GUI.Label(new Rect(x, y, w, lineH), $"LoadingDone sent: {(_loadingDoneSent ? "yes" : "no")}", _labelStyle);
-            y += lineH;
-            GUI.Label(new Rect(x, y, w, lineH), $"Last result: {_lastResult}", _labelStyle);
-            y += lineH;
-            GUI.Label(new Rect(x, y, w, lineH), $"cfg \"seed\": {Minit.GetConfigValue("seed", "(unset)")}", _labelStyle);
-            y += lineH * 1.4f;
+            GUILayout.Label($"Platform: {Application.platform}", _labelStyle);
+            GUILayout.Label($"Taps: {_taps}", _labelStyle);
+            GUILayout.Label($"Elapsed: {_elapsed:F1}s", _labelStyle);
+            GUILayout.Label($"LoadingDone sent: {(_loadingDoneSent ? "yes" : "no")}", _labelStyle);
+            GUILayout.Label($"Last result: {_lastResult}", _labelStyle);
+            GUILayout.Label($"cfg \"seed\": {Minit.GetConfigValue("seed", "(unset)")}", _labelStyle);
+            GUILayout.Space(shortEdge * 0.03f);
 
             // Buttons
-            if (GUI.Button(new Rect(x, y, w, btnH), "Report Result  (score = taps)", _buttonStyle))
+            float btnH = shortEdge / 9f;
+            if (GUILayout.Button("Report Result  (score = taps)", _buttonStyle, GUILayout.Height(btnH)))
             {
                 Minit.ReportResult(_taps, $"Tapped {_taps} times!");
                 _lastResult = $"sent {_taps}";
             }
-            y += btnH + pad;
+            GUILayout.Space(shortEdge * 0.015f);
 
-            if (GUI.Button(new Rect(x, y, w, btnH), "Signal LoadingDone", _buttonStyle))
-            {
-                Minit.LoadingDone();
-                _loadingDoneSent = true;
-            }
-            y += btnH + pad;
-
-            if (GUI.Button(new Rect(x, y, w, btnH), "Read config 'seed'", _buttonStyle))
+            if (GUILayout.Button("Read config 'seed'", _buttonStyle, GUILayout.Height(btnH)))
             {
                 _seedValue = Minit.GetConfigValue("seed", "(unset)");
             }
-            y += btnH + pad;
+            GUILayout.Space(shortEdge * 0.015f);
 
-            GUI.Label(new Rect(x, y, w, lineH), $"seed result: {_seedValue}", _labelStyle);
+            GUILayout.Label($"seed result: {_seedValue}", _labelStyle);
+
+            GUILayout.EndArea();
         }
 
         // -----------------------------------------------------------------------------------------
@@ -146,6 +138,8 @@ namespace MinitGames.Test
         private void EnsureStyles()
         {
             if (_stylesReady) return;
+
+            int shortEdge = Mathf.Min(Screen.width, Screen.height);
 
             // Semi-opaque dark background panel
             var bgTex = new Texture2D(1, 1);
@@ -166,20 +160,22 @@ namespace MinitGames.Test
             btnHoverTex.SetPixel(0, 0, new Color(0.25f, 0.50f, 0.90f, 1f));
             btnHoverTex.Apply();
 
-            int fontSize     = Mathf.Max(14, Screen.height / 30);
-            int titleSize    = Mathf.Max(20, Screen.height / 18);
-            int buttonFSize  = Mathf.Max(16, Screen.height / 26);
+            int titleSize   = Mathf.Max(20, shortEdge / 18);
+            int fontSize    = Mathf.Max(14, shortEdge / 28);
+            int buttonFSize = Mathf.Max(16, shortEdge / 24);
 
             _titleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize  = titleSize,
                 fontStyle = FontStyle.Bold,
+                wordWrap  = true,
                 normal    = { textColor = new Color(0.9f, 0.85f, 0.2f) }
             };
 
             _labelStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = fontSize,
+                wordWrap = true,
                 normal   = { textColor = Color.white }
             };
 
@@ -187,6 +183,7 @@ namespace MinitGames.Test
             {
                 fontSize  = buttonFSize,
                 fontStyle = FontStyle.Bold,
+                wordWrap  = true,
                 normal    = { background = btnTex,      textColor = Color.white },
                 hover     = { background = btnHoverTex, textColor = Color.white },
                 active    = { background = btnHoverTex, textColor = Color.yellow }
