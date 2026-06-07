@@ -68,7 +68,7 @@ There is no automated C# test suite. Validation steps:
 5. Upload the resulting ZIP to the Minit creator console (dev environment).
 6. Play the game inside the Minit feed and confirm: the game is hidden during boot (until `loadingDone` fires), then revealed; `reportResult` triggers the result screen with the correct score and flavor text.
 
-The **"Build for Minit" editor menu** (one-click ZIP packaging) is planned in DROP-2022 — it will replace steps 4–5 once available.
+The **Minit → Build for Minit** editor menu (DROP-2022; `Packages/games.minit.unity/Editor/MinitBuild.cs`) replaces steps 4–5: it applies compliant Player Settings, builds WebGL with the Minit template, and packages the result as `Build/<Product>_minit.zip`.
 
 When checking device behaviour, also verify portrait orientation and touch-only input on a real mobile device or iOS Simulator.
 
