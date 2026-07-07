@@ -31,10 +31,6 @@ namespace MinitGames.Editor
         // Confirmed against minit-root/docs/api.md (POST /drops resultType): "score" | "time" | "group".
         private static readonly string[] ResultTypeOptions = { "score", "time", "group" };
 
-        // Mirrors MinitBuild.SizeCapBytes / MinitDropsClient.SizeCapBytes — UI-only warning here;
-        // MinitDropsClient.CreateUploadUrlAsync is the actual enforcement point.
-        private const long SizeCapBytes = 52_428_800L; // 50 MiB
-
         private enum DraftTargetMode
         {
             CreateNew,
@@ -233,7 +229,7 @@ namespace MinitGames.Editor
                 EditorGUILayout.LabelField("ZIP", _zipPath);
                 EditorGUILayout.LabelField("Size", $"{zipMb:F2} MB");
 
-                if (_zipSizeBytes > SizeCapBytes)
+                if (_zipSizeBytes > MinitBuild.SizeCapBytes)
                     EditorGUILayout.HelpBox(
                         $"This ZIP is {zipMb:F2} MB — over the Minit 50 MB upload cap. The backend will reject it.",
                         MessageType.Warning);

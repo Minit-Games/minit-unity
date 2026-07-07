@@ -16,7 +16,11 @@ namespace MinitGames.Editor
     public static class MinitBuild
     {
         private const string MenuPath = "Minit/Build for Minit";
-        private const long SizeCapBytes = 52_428_800L; // 50 MiB
+
+        /// <summary>Platform-wide upload cap (50 MiB) — single source of truth, referenced by
+        /// <see cref="MinitDropsClient"/> and <see cref="MinitLoginUploadWindow"/> instead of
+        /// each keeping its own copy of the constant.</summary>
+        public const long SizeCapBytes = 52_428_800L; // 50 MiB
 
         [MenuItem(MenuPath)]
         public static void BuildForMinit()

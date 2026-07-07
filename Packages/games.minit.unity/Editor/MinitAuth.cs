@@ -74,7 +74,7 @@ namespace MinitGames.Editor
                 if (waitError != null)
                     return MinitAuthResult.Failed(waitError);
 
-                return await ExchangeAndFetchIdentityAsync(session, cognitoToken);
+                return await ExchangeAndFetchIdentityAsync(session, cognitoToken, ct);
             }
             catch (OperationCanceledException)
             {
@@ -173,35 +173,68 @@ namespace MinitGames.Editor
                 catch { /* already stopped/disposed */ }
             }))
             {
-                HttpListenerContext context;
-                try
+                // Loop rather than treating the first received request as THE callback: a stray
+                // request (browser favicon/preflight probe, another local process hitting this
+                // port) must not consume the one real callback and be mistaken for it. Only a
+                // request to the "/callback" path is treated as the OAuth handoff; anything else
+                // gets a 404 and we keep waiting. The overall timeout + cancellation (via
+                // listener.Stop() on the linked CTS above) still bounds how long this can run.
+                while (true)
                 {
-                    context = await listener.GetContextAsync();
+                    HttpListenerContext context;
+                    try
+                    {
+                        context = await listener.GetContextAsync();
+                    }
+                    catch (Exception) when (combinedCts.IsCancellationRequested)
+                    {
+                        if (timeoutCts.IsCancellationRequested)
+                            return (null, "Login timed out waiting for the browser sign-in to complete.");
+
+                        ct.ThrowIfCancellationRequested();
+                        return (null, "Login cancelled.");
+                    }
+
+                    HttpListenerRequest request = context.Request;
+
+                    if (request.Url == null || request.Url.AbsolutePath != "/callback")
+                    {
+                        await WriteNotFoundResponseAsync(context.Response);
+                        continue;
+                    }
+
+                    string state = request.QueryString["state"];
+                    string cognitoToken = request.QueryString["cognito_token"];
+
+                    bool stateOk = !string.IsNullOrEmpty(state) && state == expectedState;
+                    bool tokenOk = !string.IsNullOrEmpty(cognitoToken);
+
+                    await WriteCallbackResponseAsync(context.Response, success: stateOk && tokenOk);
+
+                    if (!stateOk)
+                        return (null, "Login failed: the sign-in callback's state did not match (possible CSRF) — please try again.");
+                    if (!tokenOk)
+                        return (null, "Login failed: the browser did not return a sign-in token.");
+
+                    return (cognitoToken, null);
                 }
-                catch (Exception) when (combinedCts.IsCancellationRequested)
-                {
-                    if (timeoutCts.IsCancellationRequested)
-                        return (null, "Login timed out waiting for the browser sign-in to complete.");
+            }
+        }
 
-                    ct.ThrowIfCancellationRequested();
-                    return (null, "Login cancelled.");
-                }
+        private static async Task WriteNotFoundResponseAsync(HttpListenerResponse response)
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes("Not found");
+            response.StatusCode = 404;
+            response.ContentType = "text/plain; charset=utf-8";
+            response.ContentLength64 = buffer.Length;
 
-                HttpListenerRequest request = context.Request;
-                string state = request.QueryString["state"];
-                string cognitoToken = request.QueryString["cognito_token"];
-
-                bool stateOk = !string.IsNullOrEmpty(state) && state == expectedState;
-                bool tokenOk = !string.IsNullOrEmpty(cognitoToken);
-
-                await WriteCallbackResponseAsync(context.Response, success: stateOk && tokenOk);
-
-                if (!stateOk)
-                    return (null, "Login failed: the sign-in callback's state did not match (possible CSRF) — please try again.");
-                if (!tokenOk)
-                    return (null, "Login failed: the browser did not return a sign-in token.");
-
-                return (cognitoToken, null);
+            try
+            {
+                await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+            }
+            finally
+            {
+                response.OutputStream.Close();
             }
         }
 
@@ -237,14 +270,14 @@ namespace MinitGames.Editor
 
         // ── /auth/console exchange + /users/self ────────────────────────────────────
 
-        private static async Task<MinitAuthResult> ExchangeAndFetchIdentityAsync(MinitSession session, string cognitoToken)
+        private static async Task<MinitAuthResult> ExchangeAndFetchIdentityAsync(MinitSession session, string cognitoToken, CancellationToken ct = default)
         {
             string backendBaseUrl = MinitEnvironments.BackendBaseUrl(session.Environment);
 
             string requestJson = JsonUtility.ToJson(new ConsoleAuthRequestDto { cognitoToken = cognitoToken });
 
             // No x-api-key / Authorization header — /auth/console is public (authorizer: None).
-            MinitHttpResponse exchangeResponse = await MinitHttp.PostJsonAsync($"{backendBaseUrl}/auth/console", requestJson);
+            MinitHttpResponse exchangeResponse = await MinitHttp.PostJsonAsync($"{backendBaseUrl}/auth/console", requestJson, ct: ct);
             if (!exchangeResponse.IsSuccess)
                 return MinitAuthResult.Failed(DescribeConsoleAuthError(exchangeResponse));
 
@@ -263,7 +296,7 @@ namespace MinitGames.Editor
             if (string.IsNullOrEmpty(accessToken))
                 return MinitAuthResult.Failed("Login failed: the server's response did not include an access token.");
 
-            MinitHttpResponse selfResponse = await MinitHttp.GetAsync($"{backendBaseUrl}/users/self", accessToken);
+            MinitHttpResponse selfResponse = await MinitHttp.GetAsync($"{backendBaseUrl}/users/self", accessToken, ct);
             if (!selfResponse.IsSuccess)
                 return MinitAuthResult.Failed($"Login failed: could not fetch your profile (HTTP {selfResponse.StatusCode}).");
 

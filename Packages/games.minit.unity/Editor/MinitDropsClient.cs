@@ -60,20 +60,27 @@ namespace MinitGames.Editor
     }
 
     /// <summary>
-    /// The processing pipeline stage for a drop's uploaded ZIP, derived from field presence on
-    /// the drop (there is no server-side "processingState" field — see
-    /// <see cref="MinitDropsClient.PollProcessingAsync"/>).
+    /// The processing pipeline stage for a drop's uploaded ZIP, derived from the <c>status</c>
+    /// field of the newest record returned by <c>GET /upload-history/drops/{dropId}?limit=1</c>
+    /// — see <see cref="MinitDropsClient.PollProcessingAsync"/>. This is the authoritative
+    /// signal (the same one minit-web's UploadTracker polls); it replaced an earlier mechanism
+    /// that derived "done" from <c>streamingUrl</c>/<c>screenshotUrl</c> presence on
+    /// <c>GET /drops/{dropId}</c> — both fields are always populated by the backend at create
+    /// time, so that check falsely reported success on the very first poll.
     /// </summary>
     public enum MinitProcessingState
     {
-        /// <summary>No <c>streamingUrl</c> yet — the backend has not ingested the ZIP.</summary>
-        UploadPending,
+        /// <summary>No upload-history record is visible yet for this drop, or its <c>status</c> is <c>"pending"</c>.</summary>
+        Pending,
 
-        /// <summary><c>streamingUrl</c> is set but <c>screenshotUrl</c> is not — analysis in progress.</summary>
-        Analyzing,
+        /// <summary>The newest upload-history record's <c>status</c> is <c>"processing"</c>.</summary>
+        Processing,
 
-        /// <summary>Both <c>streamingUrl</c> and <c>screenshotUrl</c> are set — processing is complete.</summary>
-        Analyzed
+        /// <summary>The newest upload-history record's <c>status</c> is <c>"completed"</c>.</summary>
+        Completed,
+
+        /// <summary>The newest upload-history record's <c>status</c> is <c>"failed"</c>.</summary>
+        Failed
     }
 
     /// <summary>Outcome of <see cref="MinitDropsClient.PollProcessingAsync"/>.</summary>
@@ -83,21 +90,19 @@ namespace MinitGames.Editor
         public string Error;
         public bool TimedOut;
         public MinitProcessingState State;
-        public string StreamingUrl;
-        public string ScreenshotUrl;
 
-        public static MinitProcessingResult Ok(MinitProcessingState state, string streamingUrl, string screenshotUrl) =>
-            new MinitProcessingResult { Success = true, State = state, StreamingUrl = streamingUrl, ScreenshotUrl = screenshotUrl };
+        public static MinitProcessingResult Ok(MinitProcessingState state) =>
+            new MinitProcessingResult { Success = true, State = state };
 
-        public static MinitProcessingResult Failed(string error) =>
-            new MinitProcessingResult { Success = false, Error = error };
+        public static MinitProcessingResult Failed(string error, MinitProcessingState state = MinitProcessingState.Failed) =>
+            new MinitProcessingResult { Success = false, Error = error, State = state };
 
         public static MinitProcessingResult Timeout() => new MinitProcessingResult
         {
             Success = false,
             TimedOut = true,
-            State = MinitProcessingState.Analyzing,
-            Error = "Processing did not finish within 60 seconds. The drop may still be analyzing " +
+            State = MinitProcessingState.Processing,
+            Error = "Processing did not finish within 60 seconds. The drop may still be processing " +
                     "— check back in a bit (poll again, or view the drop in the creator console)."
         };
     }
@@ -116,11 +121,14 @@ namespace MinitGames.Editor
     /// </summary>
     public static class MinitDropsClient
     {
-        // Mirrors MinitBuild.SizeCapBytes and the backend's platform-wide upload cap.
-        private const long SizeCapBytes = 52_428_800L; // 50 MiB
-
         private const int MaxPollAttempts = 30;
         private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
+
+        // S3 multipart upload is handled here directly (not via MinitHttp, which is JSON-only),
+        // but still shares one pooled HttpClient across uploads rather than allocating a new one
+        // per call — a single shared instance is the recommended usage pattern (avoids socket
+        // exhaustion). Deliberately never disposed.
+        private static readonly HttpClient S3HttpClient = new HttpClient();
 
         // ── Create draft drop ───────────────────────────────────────────────────────
 
@@ -221,7 +229,7 @@ namespace MinitGames.Editor
             if (string.IsNullOrEmpty(dropId))
                 throw new ArgumentException("dropId must not be null or empty.", nameof(dropId));
 
-            if (sizeBytes > SizeCapBytes)
+            if (sizeBytes > MinitBuild.SizeCapBytes)
             {
                 double sizeMb = sizeBytes / (1024.0 * 1024.0);
                 return MinitUploadUrlResult.Failed(
@@ -323,7 +331,6 @@ namespace MinitGames.Editor
 
             progress?.Report(0f);
 
-            using var httpClient = new HttpClient();
             using var form = new MultipartFormDataContent();
 
             // Policy fields first, in order — the file field must come last.
@@ -337,7 +344,7 @@ namespace MinitGames.Editor
             HttpResponseMessage response;
             try
             {
-                response = await httpClient.PostAsync(presignedUrl, form, ct);
+                response = await S3HttpClient.PostAsync(presignedUrl, form, ct);
             }
             catch (Exception ex)
             {
@@ -362,11 +369,11 @@ namespace MinitGames.Editor
         // ── Poll processing ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Polls <c>GET /drops/{dropId}</c> every ~2s (up to ~60s total) until the drop's
-        /// processing pipeline finishes. The drop stays <c>status: "draft"</c> throughout — there
-        /// is no server-side "processingState" field, so this derives one from field presence:
-        /// no <c>streamingUrl</c> = upload_pending; <c>streamingUrl</c> without
-        /// <c>screenshotUrl</c> = analyzing; both present = analyzed.
+        /// Polls <c>GET /upload-history/drops/{dropId}?limit=1</c> every ~2s (up to ~60s total)
+        /// until the newest upload record for this drop reaches a terminal status
+        /// (<c>completed</c> or <c>failed</c>) — this is the same authoritative signal
+        /// minit-web's UploadTracker polls. An empty <c>uploads</c> array (the row may not be
+        /// visible yet right after the S3 POST completes) is treated the same as <c>pending</c>.
         /// </summary>
         public static async Task<MinitProcessingResult> PollProcessingAsync(
             MinitSession session,
@@ -395,44 +402,55 @@ namespace MinitGames.Editor
                     return MinitProcessingResult.Failed($"Could not authenticate: {ex.Message}");
                 }
 
-                MinitHttpResponse response = await MinitHttp.GetAsync($"{backendBaseUrl}/drops/{dropId}", accessToken, ct);
+                MinitHttpResponse response = await MinitHttp.GetAsync(
+                    $"{backendBaseUrl}/upload-history/drops/{dropId}?limit=1", accessToken, ct);
                 if (!response.IsSuccess)
                 {
+                    if (response.StatusCode == 403)
+                        return MinitProcessingResult.Failed($"You do not have permission to view upload status for drop: {dropId}");
                     if (response.StatusCode == 404)
                         return MinitProcessingResult.Failed($"Drop not found: {dropId}");
 
                     return MinitProcessingResult.Failed(
-                        $"Backend error while checking processing status (HTTP {response.StatusCode}): {response.Body}");
+                        $"Backend error while checking upload status (HTTP {response.StatusCode}): {response.Body}");
                 }
 
-                GetDropResponseDto dto;
+                UploadHistoryResponseDto dto;
                 try
                 {
-                    dto = JsonUtility.FromJson<GetDropResponseDto>(response.Body);
+                    dto = JsonUtility.FromJson<UploadHistoryResponseDto>(response.Body);
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[Minit] Failed to parse GET /drops/{{dropId}} response:\n{ex}");
-                    return MinitProcessingResult.Failed("Could not parse the server's drop response.");
+                    Debug.LogError($"[Minit] Failed to parse GET /upload-history/drops/{{dropId}} response:\n{ex}");
+                    return MinitProcessingResult.Failed("Could not parse the server's upload-history response.");
                 }
 
-                if (dto?.drop == null)
-                    return MinitProcessingResult.Failed("The server did not return a valid drop.");
+                UploadRecordDto latest = dto?.uploads != null && dto.uploads.Length > 0 ? dto.uploads[0] : null;
+                string status = latest?.status ?? "pending";
 
-                bool hasStreaming = !string.IsNullOrEmpty(dto.drop.streamingUrl);
-                bool hasScreenshot = !string.IsNullOrEmpty(dto.drop.screenshotUrl);
-
-                MinitProcessingState state =
-                    !hasStreaming ? MinitProcessingState.UploadPending :
-                    !hasScreenshot ? MinitProcessingState.Analyzing :
-                    MinitProcessingState.Analyzed;
+                MinitProcessingState state;
+                if (status == "completed")
+                    state = MinitProcessingState.Completed;
+                else if (status == "failed")
+                    state = MinitProcessingState.Failed;
+                else if (status == "processing")
+                    state = MinitProcessingState.Processing;
+                else
+                    state = MinitProcessingState.Pending;
 
                 statusProgress?.Report(state.ToString());
 
-                if (state == MinitProcessingState.Analyzed)
+                if (state == MinitProcessingState.Completed)
                 {
                     Debug.Log($"[Minit] Drop {dropId} finished processing.");
-                    return MinitProcessingResult.Ok(state, dto.drop.streamingUrl, dto.drop.screenshotUrl);
+                    return MinitProcessingResult.Ok(state);
+                }
+
+                if (state == MinitProcessingState.Failed)
+                {
+                    string message = string.IsNullOrEmpty(latest?.message) ? "The upload failed processing." : latest.message;
+                    return MinitProcessingResult.Failed(message, state);
                 }
 
                 if (attempt < MaxPollAttempts)
@@ -662,19 +680,25 @@ namespace MinitGames.Editor
             // deserialize it. See ExtractStringMapProperty above.
         }
 
+        // JsonUtility can deserialize an array field nested inside a wrapper object (unlike the
+        // flat arbitrary-key "fields" map above, which needed the hand-rolled parser).
         [Serializable]
-        private class GetDropResponseDto
+        private class UploadHistoryResponseDto
         {
-            public DropProcessingDto drop;
+            public UploadRecordDto[] uploads;
         }
 
         [Serializable]
-        private class DropProcessingDto
+        private class UploadRecordDto
         {
-            public string id;
+            public string userId;
+            public string resource;
+            public string resourceId;
+            public string artifactId;
+            public double createdAt;
+            public double updatedAt;
             public string status;
-            public string streamingUrl;
-            public string screenshotUrl;
+            public string message;
         }
 
         [Serializable]

@@ -45,7 +45,7 @@ Packages/games.minit.unity/
     ├── MinitSession.cs           MinitSession — environment (EditorPrefs) + access token/identity (SessionState, in-memory only)
     ├── MinitHttp.cs              Dependency-free GET/POST-JSON HttpClient wrapper shared by MinitAuth and MinitDropsClient
     ├── MinitAuth.cs              Loopback browser-handoff login (LoginAsync), EnsureAccessTokenAsync, Logout
-    ├── MinitDropsClient.cs       Drops/upload REST client — CreateDraftAsync, CreateUploadUrlAsync, UploadZipToS3Async, PollProcessingAsync, BuildConsoleDropUrl
+    ├── MinitDropsClient.cs       Drops/upload REST client — CreateDraftAsync, CreateUploadUrlAsync, UploadZipToS3Async, PollProcessingAsync (polls upload-history, not GET /drops), BuildConsoleDropUrl
     └── MinitLoginUploadWindow.cs Minit → Login & Upload editor window (DROP-3224) — see below
 ```
 
@@ -78,7 +78,7 @@ Packages/games.minit.unity/
 **Upload flow.** Once logged in:
 1. **ZIP source** — either **Build for Minit now** (`MinitBuild.BuildAndZip()`, the same build+zip logic as the standalone `Minit → Build for Minit` menu, refactored in DROP-3224 to return the ZIP path instead of only revealing it in Finder/Explorer) or **Select ZIP…** to point at an existing archive.
 2. **Target draft** — either create a new draft (title, description, result type, reverse-sorting) via `POST /drops`, or paste the id of an existing draft. **There is no list-drafts client method as of this cut** — pasting an id is the simplest "pick an existing draft" path; a picker is a natural follow-up once a list-drops client method exists.
-3. **Upload** — `CreateUploadUrlAsync` (enforces the 50 MB cap pre-flight and mirrors it server-side) → `UploadZipToS3Async` (direct presigned POST to S3, no bearer token) → `PollProcessingAsync` (polls until the drop's `streamingUrl`/`screenshotUrl` are populated) → a **View in console** link built from `MinitDropsClient.BuildConsoleDropUrl`.
+3. **Upload** — `CreateUploadUrlAsync` (enforces the 50 MB cap pre-flight and mirrors it server-side) → `UploadZipToS3Async` (direct presigned POST to S3, no bearer token) → `PollProcessingAsync` (polls `GET /upload-history/drops/{dropId}?limit=1` — the same authoritative signal minit-web's UploadTracker polls — every ~2s/~60s cap until the newest upload record's `status` reaches `completed` or `failed`; an earlier version derived "done" from `streamingUrl`/`screenshotUrl` presence on `GET /drops/{dropId}`, which was wrong — the backend always populates both fields at create time, so that check reported success on the first poll and could never surface a ZIP-processing failure) → a **View in console** link built from `MinitDropsClient.BuildConsoleDropUrl`.
 
 **`resultType` values.** `"score" | "time" | "group"` — confirmed against `minit-root/docs/api.md` (`POST /drops`). The window exposes them as a popup, defaulting to `"score"`.
 
