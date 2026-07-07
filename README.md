@@ -243,6 +243,27 @@ If the ZIP exceeds **50 MB**, the tool logs a warning. The file is still written
 
 ---
 
+## Login & Upload
+
+Use **Minit → Login & Upload** to build (or select) a drop ZIP, create or target a draft, and upload it — all without leaving the Unity Editor.
+
+### Usage
+
+1. Open **Minit → Login & Upload** from the Unity menu bar.
+2. Pick **Dev** or **Prod** from the Environment popup. Switching environments while logged in signs you out — dev and prod are separate backends and consoles.
+3. Click **Log in with Minit**. Your system browser opens for sign-in; return to Unity once it completes. As long as your browser session is still valid, subsequent logins (including the automatic silent refresh Unity performs when your access token expires) require no further interaction.
+4. Once logged in, choose a ZIP source:
+   - **Build for Minit now** — runs the same build pipeline as [Build for Minit](#build-for-minit) and picks up the resulting ZIP automatically.
+   - **Select ZIP…** — pick an existing ZIP from disk.
+5. Choose a target draft:
+   - **Create new draft** — fill in Title, Description, Result Type (`score` / `time` / `group`), and Reverse sorting.
+   - **Use existing draft ID** — paste the id of a draft you already created (e.g. from the creator console). There is no in-editor drafts picker yet — this is the simplest way to target an existing draft.
+6. Click **Upload to Minit**. The window shows progress through draft creation, the presigned S3 upload, and processing, then offers an **Open in console** button once the drop is ready.
+
+The 50 MB ZIP size cap (see [Size limit](#size-limit)) applies here too — the window warns inline if the selected ZIP is oversized, and the backend rejects the upload regardless.
+
+---
+
 ## Sample game
 
 The package ships a minimal **Minit Sample** to help you verify the full workflow end-to-end.

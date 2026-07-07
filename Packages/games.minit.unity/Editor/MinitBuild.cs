@@ -21,17 +21,30 @@ namespace MinitGames.Editor
         [MenuItem(MenuPath)]
         public static void BuildForMinit()
         {
+            string zipPath;
             try
             {
-                RunBuild();
+                zipPath = BuildAndZip();
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[Minit] Build for Minit failed with an unexpected exception:\n{ex}");
+                return;
             }
+
+            if (zipPath != null)
+                EditorUtility.RevealInFinder(zipPath);
         }
 
-        private static void RunBuild()
+        /// <summary>
+        /// Applies the compliant Player Settings, builds WebGL, and zips the result. Returns the
+        /// absolute path of the created ZIP on success, or <c>null</c> if a guard aborted the run
+        /// or the build itself failed (both cases are already <c>Debug.LogError</c>/
+        /// <c>LogWarning</c>'d before returning). Does NOT hard-fail on an oversized ZIP — the
+        /// caller (the <c>Minit → Build for Minit</c> menu item, or the Login &amp; Upload window)
+        /// still gets the path back; the upload flow / backend enforce the 50 MB cap.
+        /// </summary>
+        public static string BuildAndZip()
         {
             // ── 1. Guard: WebGL template present ────────────────────────────────────
             const string templateRelPath = "Assets/WebGLTemplates/Minit/index.html";
@@ -47,7 +60,7 @@ namespace MinitGames.Editor
                     "The template ships with the project's Assets/WebGLTemplates/Minit/ folder, " +
                     "not inside the UPM package. Copy it into your project if you're using the " +
                     "package via UPM Git URL (follow-up: DROP-2022).");
-                return;
+                return null;
             }
 
             // ── 2. Guard: at least one enabled scene ────────────────────────────────
@@ -64,7 +77,7 @@ namespace MinitGames.Editor
                 Debug.LogError(
                     "[Minit] No enabled scenes found in Build Settings (File → Build Settings). " +
                     "Add and enable at least one scene, then try again.");
-                return;
+                return null;
             }
 
             // ── 3. Apply compliant Player Settings ──────────────────────────────────
@@ -147,7 +160,7 @@ namespace MinitGames.Editor
                 Debug.LogError(
                     $"[Minit] Build failed (result: {report.summary.result}). " +
                     "Check the Console for compiler errors and try again. No ZIP was created.");
-                return;
+                return null;
             }
 
             Debug.Log($"[Minit] Build succeeded in {report.summary.totalTime.TotalSeconds:F1}s.");
@@ -187,7 +200,7 @@ namespace MinitGames.Editor
                     "Enable High managed stripping, strip engine code, and reduce asset sizes.");
             }
 
-            EditorUtility.RevealInFinder(zipPath);
+            return zipPath;
         }
 
         // ── Helpers ─────────────────────────────────────────────────────────────────
