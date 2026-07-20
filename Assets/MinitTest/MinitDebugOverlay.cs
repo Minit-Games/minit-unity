@@ -8,9 +8,10 @@ namespace MinitGames.Test
     /// <summary>
     /// TEST-ONLY drop-in overlay for visually verifying the Minit bridge on a real device or in
     /// the app WebView. It confirms (a) rendering works, (b) touch/taps are registered, and
-    /// (c) the MinitGames.Minit bridge calls fire correctly (LoadingDone, ReportResult,
-    /// GetConfigValue). Auto-spawns via RuntimeInitializeOnLoadMethod — no scene or prefab
-    /// wiring required. DO NOT ship this component in a real game.
+    /// (c) the MinitGames.Minit bridge calls fire correctly (LoadingDone, ReportResult (including
+    /// its userData write), GetConfigValue, GetUserData). Auto-spawns via
+    /// RuntimeInitializeOnLoadMethod — no scene or prefab wiring required. DO NOT ship this
+    /// component in a real game.
     /// </summary>
     public class MinitDebugOverlay : MonoBehaviour
     {
@@ -35,6 +36,7 @@ namespace MinitGames.Test
         private bool   _loadingDoneSent;
         private string _lastResult = "(none)";
         private string _seedValue  = "(not read yet)";
+        private string _userDataValue = "(not read yet)";
 
         // Cached IMGUI styles — allocated once, reused every frame
         private GUIStyle _panelStyle;
@@ -115,8 +117,8 @@ namespace MinitGames.Test
             float btnH = shortEdge / 9f;
             if (GUILayout.Button("Report Result  (score = taps)", _buttonStyle, GUILayout.Height(btnH)))
             {
-                Minit.ReportResult(_taps, $"Tapped {_taps} times!");
-                _lastResult = $"sent {_taps}";
+                Minit.ReportResult(_taps, $"Tapped {_taps} times!", userData: $"taps={_taps}");
+                _lastResult = $"sent {_taps} (userData: taps={_taps})";
             }
             GUILayout.Space(shortEdge * 0.015f);
 
@@ -127,6 +129,15 @@ namespace MinitGames.Test
             GUILayout.Space(shortEdge * 0.015f);
 
             GUILayout.Label($"seed result: {_seedValue}", _labelStyle);
+            GUILayout.Space(shortEdge * 0.015f);
+
+            if (GUILayout.Button("Read userData", _buttonStyle, GUILayout.Height(btnH)))
+            {
+                _userDataValue = Minit.GetUserData("(none)");
+            }
+            GUILayout.Space(shortEdge * 0.015f);
+
+            GUILayout.Label($"userData: {_userDataValue}", _labelStyle);
 
             GUILayout.EndArea();
         }

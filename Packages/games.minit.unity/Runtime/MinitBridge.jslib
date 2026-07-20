@@ -1,9 +1,11 @@
 mergeInto(LibraryManager.library, {
-  MinitReportResult: function (score, flavorTextPtr, delay) {
+  MinitReportResult: function (score, flavorTextPtr, delay, userDataPtr) {
     var opts = {};
     var flavorText = flavorTextPtr ? UTF8ToString(flavorTextPtr) : "";
     if (flavorText) opts.flavorText = flavorText;
     if (delay > 0) opts.delay = delay;
+    var userData = userDataPtr ? UTF8ToString(userDataPtr) : "";
+    if (userData) opts.userData = { value: userData }; // omit to leave the host's stored value unchanged
     if (window.minit && window.minit.reportResult) window.minit.reportResult(score, opts);
     else console.log("[minit] reportResult", score, opts);
   },
@@ -17,6 +19,20 @@ mergeInto(LibraryManager.library, {
     if (key !== "userData") { // reserved key — mirrors @minit-games/sdk
       var params = new URLSearchParams(window.location.search);
       if (params.has(key)) val = params.get(key);
+    }
+    var size = lengthBytesUTF8(val) + 1;
+    var buffer = _malloc(size);
+    stringToUTF8(val, buffer, size);
+    return buffer; // caller frees via MinitFreeBuffer
+  },
+  MinitGetUserData: function (defaultPtr) {
+    var def = defaultPtr ? UTF8ToString(defaultPtr) : "";
+    var val = def;
+    if (window.minit && window.minit.userData != null) {
+      val = window.minit.userData; // host-injected string (including "") wins
+    } else {
+      var params = new URLSearchParams(window.location.search);
+      if (params.has("userData")) val = params.get("userData");
     }
     var size = lengthBytesUTF8(val) + 1;
     var buffer = _malloc(size);

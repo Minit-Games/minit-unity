@@ -91,10 +91,10 @@ In the editor and in non-WebGL builds, this logs `[Minit] LoadingDone()` to the 
 
 ---
 
-### `Minit.ReportResult(score, flavorText, delay)`
+### `Minit.ReportResult(score, flavorText, delay, userData)`
 
 ```csharp
-public static void ReportResult(double score, string flavorText = null, int delay = 0)
+public static void ReportResult(double score, string flavorText = null, int delay = 0, string userData = null)
 ```
 
 Submits the final result and triggers the Minit result screen. Call exactly once when the game ends — the host ignores repeat calls.
@@ -104,6 +104,7 @@ Submits the final result and triggers the Minit result screen. Call exactly once
 | `score` | `double` | The player's result. Higher = better by default. |
 | `flavorText` | `string?` | Optional short text shown on the result screen (e.g. `"Nice run!"`, `"3 mistakes"`). |
 | `delay` | `int` | Milliseconds to wait before showing the result screen — use this to hold the result screen back during an end-of-game animation. |
+| `userData` | `string?` | Optional player save state to persist for this creator's games. Pass a plain string (serialize it yourself, e.g. JSON). Omit (or pass `null`) to leave the stored value unchanged — an explicitly-passed empty string `""` is treated the same way and also leaves the stored value unchanged, so you cannot clear the slot with `""`; write a sentinel like `"{}"` if you need an "empty" state. Written only at result-report time — there is no standalone save call. |
 
 In the editor and in non-WebGL builds, this logs to the Console instead of posting to the host.
 
@@ -117,7 +118,7 @@ public static string GetConfigValue(string key, string defaultValue = "")
 
 Reads a config value by key. Config values are delivered as URL query parameters on the game's URL — the same mechanism the JavaScript SDK uses — so the behaviour is identical regardless of which SDK a game uses. Values are always strings — coerce to your target type yourself.
 
-The key `"userData"` is reserved by the platform and always returns `defaultValue`.
+The key `"userData"` is reserved by the platform and always returns `defaultValue` — use [`Minit.GetUserData`](#minitgetuserdatadefaultvalue) to read player save state.
 
 | Parameter | Type | Description |
 |---|---|---|
@@ -132,6 +133,33 @@ string difficulty = Minit.GetConfigValue("difficulty", "normal");
 
 // Example — read a numeric config value
 float speed = float.TryParse(Minit.GetConfigValue("speed", "1.0"), out float v) ? v : 1f;
+```
+
+---
+
+### `Minit.GetUserData(defaultValue)`
+
+```csharp
+public static string GetUserData(string defaultValue = "")
+```
+
+Reads the host-injected single-slot userData string for this player — shared across all of this creator's games. Reads `window.minit.userData` directly. Falls back to the `?userData=<value>` URL param for local dev (a host-injected string, including `""`, wins over the URL param). Returns `defaultValue` when nothing is stored and no URL param is present, or when running outside the Minit host (editor / non-WebGL).
+
+userData is written via [`Minit.ReportResult`](#minitreportresultscore-flavortext-delay-userdata) — there is no standalone save call. It is single-slot: one value per player per creator, not per game.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `defaultValue` | `string` | Returned when no userData is stored, no URL param is present, or the game is running outside the Minit host. |
+
+```csharp
+using MinitGames;
+
+// Example — read a JSON save blob, default to an empty object
+string saveJson = Minit.GetUserData("{}");
+var save = JsonUtility.FromJson<SaveData>(saveJson);
+
+// ...later, on game over, write it back
+Minit.ReportResult(_score, userData: JsonUtility.ToJson(save));
 ```
 
 ---
