@@ -104,7 +104,7 @@ Submits the final result and triggers the Minit result screen. Call exactly once
 | `score` | `double` | The player's result. Higher = better by default. |
 | `flavorText` | `string?` | Optional short text shown on the result screen (e.g. `"Nice run!"`, `"3 mistakes"`). |
 | `delay` | `int` | Milliseconds to wait before showing the result screen — use this to hold the result screen back during an end-of-game animation. |
-| `userData` | `string?` | Optional player save state to persist for this creator's games. Pass a plain string (serialize it yourself, e.g. JSON). Omit (or pass `null`) to leave the stored value unchanged. Written only at result-report time — there is no standalone save call. |
+| `userData` | `string?` | Optional player save state to persist for this creator's games. Pass a plain string (serialize it yourself, e.g. JSON). Omit (or pass `null`) to leave the stored value unchanged — an explicitly-passed empty string `""` is treated the same way and also leaves the stored value unchanged, so you cannot clear the slot with `""`; write a sentinel like `"{}"` if you need an "empty" state. Written only at result-report time — there is no standalone save call. |
 
 In the editor and in non-WebGL builds, this logs to the Console instead of posting to the host.
 
