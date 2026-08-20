@@ -120,7 +120,7 @@ Reads a config value by key. Config values are delivered as URL query parameters
 
 The key `"userData"` is reserved by the platform and always returns `defaultValue` — use [`Minit.GetUserData`](#minitgetuserdatadefaultvalue) to read player save state.
 
-Config keys are declared in your build's `meta.json` `config` array — see [Declaring config values in meta.json](https://minit.studio/docs/declaring-config-values).
+Config keys are declared in your build's `meta.json` `config` array — see [The meta.json file](https://minit.studio/docs/declaring-config-values).
 
 | Parameter | Type | Description |
 |---|---|---|
