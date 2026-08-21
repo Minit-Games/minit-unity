@@ -19,6 +19,9 @@ GitHub repo: `Minit-Games/minit-unity`
 
 ## Installation
 
+> **Note — private repository.**
+> `Minit-Games/minit-unity` is currently **private**. The UPM Git URL below only resolves for accounts with read access to it — Unity needs Git credentials that can authenticate against the repo, so this install path currently works for Minit-Games org members only. A public release is tracked separately.
+
 Install via UPM Git URL:
 
 1. Open **Window → Package Manager** in the Unity Editor.
