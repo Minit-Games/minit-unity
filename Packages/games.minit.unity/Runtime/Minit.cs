@@ -14,7 +14,9 @@ namespace MinitGames
         [DllImport("__Internal")] private static extern void MinitFreeBuffer(IntPtr ptr);
 #endif
 
-        /// <summary>Submit the final result. Call exactly once when the game ends. Higher score = better by default.</summary>
+        /// <summary>Submit the final result. Call exactly once when the game ends. Higher score = better by default.
+        /// For time-based games (meta.json resultSorting fastestTime/slowestTime) <paramref name="score"/> is SECONDS,
+        /// not milliseconds — fractions allowed (e.g. 42.5).</summary>
         public static void ReportResult(double score, string flavorText = null, int delay = 0, string userData = null)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
