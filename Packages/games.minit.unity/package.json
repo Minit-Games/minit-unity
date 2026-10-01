@@ -4,7 +4,7 @@
   "displayName": "Minit Games SDK",
   "description": "Unity → Minit export bridge (reportResult / loadingDone / config) for building Minit-compatible WebGL games.",
   "unity": "6000.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "author": {
     "name": "Drop GmbH"
   },
