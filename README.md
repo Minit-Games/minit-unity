@@ -205,7 +205,7 @@ Before uploading, make sure your WebGL build meets the Minit platform constraint
 | Rule | Requirement |
 |---|---|
 | **Orientation** | Portrait only |
-| **Input** | Touch / tap only — no keyboard or mouse expected |
+| **Input** | Touch / tap first — every action must work by tap or pointer. Keyboard is fine as an extra input (for example for desktop play), never the only way to do something. No hover — it never fires on touch screens |
 | **Storage** | No `localStorage`, `sessionStorage`, `IndexedDB`, or cross-origin `fetch` |
 | **ZIP structure** | `index.html` at the ZIP root (not inside a subfolder) |
 | **Size** | ≤ 50 MB — the uploaded ZIP (`Build/<Product>_minit.zip`) must not exceed 50 MB (server hard limit: 52,428,800 bytes) |
