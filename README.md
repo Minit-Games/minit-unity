@@ -166,6 +166,73 @@ Minit.ReportResult(_score, userData: JsonUtility.ToJson(save));
 
 ---
 
+### `Minit.ShouldShowTutorial()`
+
+```csharp
+public static bool ShouldShowTutorial()
+```
+
+Whether to run your first-play tutorial. Resolved in this order:
+
+1. Config key `tutorial` = `1` / `true` forces the tutorial on; `0` / `false` forces it off — for QA and preview links.
+2. Otherwise hidden once the host reports the player has already played this Game (`window.minit.hasPlayedGame`).
+3. Otherwise shown.
+
+In the editor and in non-WebGL builds, this always returns `true`.
+
+```csharp
+using MinitGames;
+
+if (Minit.ShouldShowTutorial()) ShowTutorial();
+```
+
+---
+
+### `Minit.IsViewable()`
+
+```csharp
+public static bool IsViewable()
+```
+
+Whether the game is currently viewable: the feed item is active and focused and the app is in the foreground. Asks the host (`window.minit.isViewable()`) when it reports viewability (mobile app); otherwise — web host, older app hosts, local dev — mirrors the page's `document.visibilityState === "visible"`. Re-checks on every call and never throws.
+
+In the editor and in non-WebGL builds, this always returns `true`.
+
+```csharp
+using MinitGames;
+
+if (!Minit.IsViewable()) PauseGameLoop();
+```
+
+---
+
+### `Minit.OnViewableChange(handler)`
+
+```csharp
+public static Action OnViewableChange(Action<bool> handler)
+```
+
+Subscribes `handler` to viewability changes (swiped away in the feed, backgrounded, covered by an overlay). It fires only on an actual value change, with the new value. Subscribing the same handler twice is a no-op. Returns an `Action` that unsubscribes the handler. Uses the host's `viewableChange` event when the host reports viewability, else the page's `visibilitychange` event. An exception thrown by one handler is logged and doesn't stop the others from being called.
+
+In the editor and in non-WebGL builds, this never fires and returns a no-op unsubscribe.
+
+```csharp
+using System;
+using MinitGames;
+using UnityEngine;
+
+public class PauseWhenHidden : MonoBehaviour
+{
+    private Action _unsubscribe;
+
+    private void OnEnable() => _unsubscribe = Minit.OnViewableChange(viewable => Time.timeScale = viewable ? 1f : 0f);
+
+    private void OnDisable() => _unsubscribe();
+}
+```
+
+---
+
 ### `MinitReady` component
 
 A drop-in `MonoBehaviour` that calls `Minit.LoadingDone()` on the first Update frame after the scene loads. Attach it to any GameObject in your scene. Add `using MinitGames;` if you reference it from code.
