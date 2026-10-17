@@ -68,27 +68,33 @@ mergeInto(LibraryManager.library, {
     if (forced === "0" || forced === "false") return 0;
     return window.minit && window.minit.hasPlayedGame === true ? 0 : 1;
   },
-  MinitIsViewable: function () {
+  MinitHostViewable: function () {
     var m = window.minit;
     if (m && typeof m.isViewable === "function" && typeof m.addEventListener === "function" && typeof m.removeEventListener === "function") {
       try {
         return m.isViewable() ? 1 : 0;
       } catch (e) {}
     }
+    return -1; // host can't answer: page visibility is the source
+  },
+  MinitIsViewable__deps: ["MinitHostViewable"],
+  MinitIsViewable: function () {
+    var host = _MinitHostViewable();
+    if (host >= 0) return host;
     return document.visibilityState === "visible" ? 1 : 0;
   },
-  MinitOnViewableChange__deps: ["MinitIsViewable"],
+  MinitOnViewableChange__deps: ["MinitHostViewable"],
   MinitOnViewableChange: function (cb) {
-    var m = window.minit;
-    var useHost = m && typeof m.isViewable === "function" && typeof m.addEventListener === "function" && typeof m.removeEventListener === "function";
-    var last = _MinitIsViewable();
+    var last = _MinitHostViewable();
+    var useHost = last >= 0;
+    if (!useHost) last = document.visibilityState === "visible" ? 1 : 0;
     var deliver = function (v) {
       if (v === last) return;
       last = v;
       {{{ makeDynCall('vi', 'cb') }}}(v);
     };
     if (useHost) {
-      m.addEventListener("viewableChange", function (viewable) { deliver(viewable ? 1 : 0); });
+      window.minit.addEventListener("viewableChange", function (viewable) { deliver(viewable ? 1 : 0); });
     } else {
       document.addEventListener("visibilitychange", function () { deliver(document.visibilityState === "visible" ? 1 : 0); });
     }
