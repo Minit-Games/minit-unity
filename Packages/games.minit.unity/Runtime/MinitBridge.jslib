@@ -1,13 +1,21 @@
 mergeInto(LibraryManager.library, {
-  MinitReportResult: function (score, flavorTextPtr, delay, userDataPtr) {
+  MinitSendResult: function (result, flavorTextPtr, delay, userDataPtr) {
     var opts = {};
     var flavorText = flavorTextPtr ? UTF8ToString(flavorTextPtr) : "";
     if (flavorText) opts.flavorText = flavorText;
     if (delay > 0) opts.delay = delay;
     var userData = userDataPtr ? UTF8ToString(userDataPtr) : "";
     if (userData) opts.userData = { value: userData }; // omit to leave the host's stored value unchanged
-    if (window.minit && window.minit.reportResult) window.minit.reportResult(score, opts);
-    else console.log("[minit] reportResult", score, opts);
+    if (window.minit && window.minit.reportResult) window.minit.reportResult(result, opts);
+    else console.log("[minit] reportResult", result, opts);
+  },
+  MinitReportResult__deps: ["MinitSendResult"],
+  MinitReportResult: function (score, flavorTextPtr, delay, userDataPtr) {
+    _MinitSendResult(score, flavorTextPtr, delay, userDataPtr);
+  },
+  MinitReportResultString__deps: ["MinitSendResult"],
+  MinitReportResultString: function (resultPtr, flavorTextPtr, delay, userDataPtr) {
+    _MinitSendResult(resultPtr ? UTF8ToString(resultPtr) : null, flavorTextPtr, delay, userDataPtr);
   },
   MinitLoadingDone: function () {
     if (window.minit && window.minit.loadingDone) window.minit.loadingDone();

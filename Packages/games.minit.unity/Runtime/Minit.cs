@@ -9,6 +9,7 @@ namespace MinitGames
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern void MinitReportResult(double score, string flavorText, int delay, string userData);
+        [DllImport("__Internal")] private static extern void MinitReportResultString(string result, string flavorText, int delay, string userData);
         [DllImport("__Internal")] private static extern void MinitLoadingDone();
         [DllImport("__Internal")] private static extern IntPtr MinitGetConfigValue(string key, string defaultValue);
         [DllImport("__Internal")] private static extern IntPtr MinitGetUserData(string defaultValue);
@@ -46,6 +47,16 @@ namespace MinitGames
             MinitReportResult(score, flavorText ?? "", delay, userData ?? "");
 #else
             Debug.Log($"[Minit] ReportResult({score}, \"{flavorText}\", {delay}, \"{userData}\")");
+#endif
+        }
+
+        /// <summary>Submit a non-numeric final result (e.g. "win", "lose", or a choice id). Call exactly once when the game ends.</summary>
+        public static void ReportResult(string result, string flavorText = null, int delay = 0, string userData = null)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            MinitReportResultString(result, flavorText ?? "", delay, userData ?? "");
+#else
+            Debug.Log($"[Minit] ReportResult(\"{result}\", \"{flavorText}\", {delay}, \"{userData}\")");
 #endif
         }
 
