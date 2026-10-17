@@ -95,6 +95,7 @@ In the editor and in non-WebGL builds, this logs `[Minit] LoadingDone()` to the 
 
 ```csharp
 public static void ReportResult(double score, string flavorText = null, int delay = 0, string userData = null)
+public static void ReportResult(string result, string flavorText = null, int delay = 0, string userData = null)
 ```
 
 Submits the final result and triggers the Minit result screen. Call exactly once when the game ends — the host ignores repeat calls.
@@ -102,9 +103,12 @@ Submits the final result and triggers the Minit result screen. Call exactly once
 | Parameter | Type | Description |
 |---|---|---|
 | `score` | `double` | The player's result. Higher = better by default. For a time-based game (`resultSorting: "fastestTime"` / `"slowestTime"` in `meta.json`) the number is **seconds**, not milliseconds — fractions allowed (`42.5`). Pass `Time.time`/`Time.realtimeSinceStartup` deltas directly; never `* 1000`. |
+| `result` | `string` | Use this overload instead of `score` for a non-numeric result (e.g. `"win"`, `"lose"`, a choice id). Numeric callers keep binding to the `double` overload. |
 | `flavorText` | `string?` | Optional short text shown on the result screen (e.g. `"Nice run!"`, `"3 mistakes"`). |
-| `delay` | `int` | Milliseconds to wait before showing the result screen — use this to hold the result screen back during an end-of-game animation. |
-| `userData` | `string?` | Optional player save state to persist for this creator's games. Pass a plain string (serialize it yourself, e.g. JSON). Omit (or pass `null`) to leave the stored value unchanged — an explicitly-passed empty string `""` is treated the same way and also leaves the stored value unchanged, so you cannot clear the slot with `""`; write a sentinel like `"{}"` if you need an "empty" state. Written only at result-report time — there is no standalone save call. |
+| `delay` | `int` | Milliseconds to wait before showing the result screen — use this to hold the result screen back during an end-of-game animation. `0` sends no delay. |
+| `userData` | `string?` | Optional player save state to persist for this creator's games. Pass a plain string (serialize it yourself, e.g. JSON). Omit (or pass `null`) to leave the stored value unchanged; pass `""` to clear the slot. Written only at result-report time — there is no standalone save call. |
+
+> **Behaviour change:** `userData: ""` is now a real write that clears the stored value, matching the other Minit SDKs. Earlier versions of this package treated `""` like `null` and left the stored value unchanged — if you relied on that, pass `null` instead.
 
 In the editor and in non-WebGL builds, this logs to the Console instead of posting to the host.
 
@@ -145,7 +149,7 @@ float speed = float.TryParse(Minit.GetConfigValue("speed", "1.0"), out float v) 
 public static string GetUserData(string defaultValue = "")
 ```
 
-Reads the host-injected single-slot userData string for this player — shared across all of this creator's games. Reads `window.minit.userData` directly. Falls back to the `?userData=<value>` URL param for local dev (a host-injected string, including `""`, wins over the URL param). Returns `defaultValue` when nothing is stored and no URL param is present, or when running outside the Minit host (editor / non-WebGL).
+Reads the host-injected single-slot userData string for this player — shared across all of this creator's games. Reads `window.minit.userData` directly. Falls back to the `?userData=<value>` URL param for local dev (a host-injected string, including `""`, wins over the URL param). Returns `defaultValue` when nothing is stored and no URL param is present, or when running outside the Minit host (editor / non-WebGL). A stored `""` is returned as `""`; use [`Minit.TryGetUserData`](#minittrygetuserdataout-value) to tell it apart from nothing stored.
 
 userData is written via [`Minit.ReportResult`](#minitreportresultscore-flavortext-delay-userdata) — there is no standalone save call. It is single-slot: one value per player per creator, not per game.
 
@@ -162,6 +166,29 @@ var save = JsonUtility.FromJson<SaveData>(saveJson);
 
 // ...later, on game over, write it back
 Minit.ReportResult(_score, userData: JsonUtility.ToJson(save));
+```
+
+---
+
+### `Minit.TryGetUserData(out value)`
+
+```csharp
+public static bool TryGetUserData(out string value)
+```
+
+Reads the same userData as [`Minit.GetUserData`](#minitgetuserdatadefaultvalue), but tells "nothing stored" apart from a stored empty string. Returns `false` (with `value` = `null`) when nothing is stored and no `?userData=` URL param is present, and `true` with the stored string otherwise — including `""`. Always returns `false` outside the Minit host (editor / non-WebGL).
+
+```csharp
+using MinitGames;
+
+if (Minit.TryGetUserData(out string saveJson))
+{
+    // a value is stored — "" means the player's slot was cleared
+}
+else
+{
+    // first play for this creator's games
+}
 ```
 
 ---
