@@ -1,21 +1,19 @@
 mergeInto(LibraryManager.library, {
-  MinitSendResult: function (result, flavorTextPtr, delay, userDataPtr) {
+  MinitSendResult: function (result, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr) {
     var opts = {};
-    var flavorText = flavorTextPtr ? UTF8ToString(flavorTextPtr) : "";
-    if (flavorText) opts.flavorText = flavorText;
+    if (hasFlavor) opts.flavorText = UTF8ToString(flavorTextPtr);
     if (delay > 0) opts.delay = delay;
-    var userData = userDataPtr ? UTF8ToString(userDataPtr) : "";
-    if (userData) opts.userData = { value: userData }; // omit to leave the host's stored value unchanged
+    if (hasUserData) opts.userData = { value: UTF8ToString(userDataPtr) }; // "" is a real write that clears the slot
     if (window.minit && window.minit.reportResult) window.minit.reportResult(result, opts);
     else console.log("[minit] reportResult", result, opts);
   },
   MinitReportResult__deps: ["MinitSendResult"],
-  MinitReportResult: function (score, flavorTextPtr, delay, userDataPtr) {
-    _MinitSendResult(score, flavorTextPtr, delay, userDataPtr);
+  MinitReportResult: function (score, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr) {
+    _MinitSendResult(score, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr);
   },
   MinitReportResultString__deps: ["MinitSendResult"],
-  MinitReportResultString: function (resultPtr, flavorTextPtr, delay, userDataPtr) {
-    _MinitSendResult(resultPtr ? UTF8ToString(resultPtr) : null, flavorTextPtr, delay, userDataPtr);
+  MinitReportResultString: function (resultPtr, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr) {
+    _MinitSendResult(resultPtr ? UTF8ToString(resultPtr) : null, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr);
   },
   MinitLoadingDone: function () {
     if (window.minit && window.minit.loadingDone) window.minit.loadingDone();

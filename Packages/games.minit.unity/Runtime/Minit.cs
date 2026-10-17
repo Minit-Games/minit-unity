@@ -8,8 +8,8 @@ namespace MinitGames
     public static class Minit
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
-        [DllImport("__Internal")] private static extern void MinitReportResult(double score, string flavorText, int delay, string userData);
-        [DllImport("__Internal")] private static extern void MinitReportResultString(string result, string flavorText, int delay, string userData);
+        [DllImport("__Internal")] private static extern void MinitReportResult(double score, int hasFlavor, string flavorText, int delay, int hasUserData, string userData);
+        [DllImport("__Internal")] private static extern void MinitReportResultString(string result, int hasFlavor, string flavorText, int delay, int hasUserData, string userData);
         [DllImport("__Internal")] private static extern void MinitLoadingDone();
         [DllImport("__Internal")] private static extern IntPtr MinitGetConfigValue(string key, string defaultValue);
         [DllImport("__Internal")] private static extern IntPtr MinitGetUserData(string defaultValue);
@@ -44,7 +44,7 @@ namespace MinitGames
         public static void ReportResult(double score, string flavorText = null, int delay = 0, string userData = null)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            MinitReportResult(score, flavorText ?? "", delay, userData ?? "");
+            MinitReportResult(score, flavorText != null ? 1 : 0, flavorText, delay, userData != null ? 1 : 0, userData);
 #else
             Debug.Log($"[Minit] ReportResult({score}, \"{flavorText}\", {delay}, \"{userData}\")");
 #endif
@@ -54,7 +54,7 @@ namespace MinitGames
         public static void ReportResult(string result, string flavorText = null, int delay = 0, string userData = null)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            MinitReportResultString(result, flavorText ?? "", delay, userData ?? "");
+            MinitReportResultString(result, flavorText != null ? 1 : 0, flavorText, delay, userData != null ? 1 : 0, userData);
 #else
             Debug.Log($"[Minit] ReportResult(\"{result}\", \"{flavorText}\", {delay}, \"{userData}\")");
 #endif
