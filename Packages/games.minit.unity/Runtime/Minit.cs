@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -13,6 +14,27 @@ namespace MinitGames
         [DllImport("__Internal")] private static extern IntPtr MinitGetUserData(string defaultValue);
         [DllImport("__Internal")] private static extern void MinitFreeBuffer(IntPtr ptr);
         [DllImport("__Internal")] private static extern int MinitShouldShowTutorial();
+        [DllImport("__Internal")] private static extern int MinitIsViewable();
+        [DllImport("__Internal")] private static extern void MinitOnViewableChange(Action<int> callback);
+
+        private static readonly List<Action<bool>> ViewableSubscribers = new List<Action<bool>>();
+        private static bool _viewableBridgeRegistered;
+
+        [AOT.MonoPInvokeCallback(typeof(Action<int>))]
+        private static void DispatchViewableChange(int viewable)
+        {
+            foreach (Action<bool> subscriber in ViewableSubscribers.ToArray())
+            {
+                try
+                {
+                    subscriber(viewable != 0);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
+        }
 #endif
 
         /// <summary>Submit the final result. Call exactly once when the game ends. Higher score = better by default.
@@ -71,6 +93,34 @@ namespace MinitGames
             return MinitShouldShowTutorial() != 0;
 #else
             return true;
+#endif
+        }
+
+        /// <summary>Whether the game is currently viewable: feed item active and focused, app in the foreground.
+        /// Falls back to the page's visibility when the host doesn't report viewability. Always true in the editor.</summary>
+        public static bool IsViewable()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return MinitIsViewable() != 0;
+#else
+            return true;
+#endif
+        }
+
+        /// <summary>Subscribe to viewability changes; <paramref name="handler"/> fires only when the value actually changes.
+        /// Subscribing the same handler twice is a no-op. Returns an Action that unsubscribes. No-op in the editor.</summary>
+        public static Action OnViewableChange(Action<bool> handler)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!ViewableSubscribers.Contains(handler)) ViewableSubscribers.Add(handler);
+            if (!_viewableBridgeRegistered)
+            {
+                _viewableBridgeRegistered = true;
+                MinitOnViewableChange(DispatchViewableChange);
+            }
+            return () => ViewableSubscribers.Remove(handler);
+#else
+            return () => { };
 #endif
         }
     }

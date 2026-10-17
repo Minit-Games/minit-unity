@@ -47,5 +47,30 @@ mergeInto(LibraryManager.library, {
     if (forced === "1" || forced === "true") return 1;
     if (forced === "0" || forced === "false") return 0;
     return window.minit && window.minit.hasPlayedGame === true ? 0 : 1;
+  },
+  MinitIsViewable: function () {
+    var m = window.minit;
+    if (m && typeof m.isViewable === "function" && typeof m.addEventListener === "function" && typeof m.removeEventListener === "function") {
+      try {
+        return m.isViewable() ? 1 : 0;
+      } catch (e) {}
+    }
+    return document.visibilityState === "visible" ? 1 : 0;
+  },
+  MinitOnViewableChange__deps: ["MinitIsViewable"],
+  MinitOnViewableChange: function (cb) {
+    var m = window.minit;
+    var useHost = m && typeof m.isViewable === "function" && typeof m.addEventListener === "function" && typeof m.removeEventListener === "function";
+    var last = _MinitIsViewable();
+    var deliver = function (v) {
+      if (v === last) return;
+      last = v;
+      {{{ makeDynCall('vi', 'cb') }}}(v);
+    };
+    if (useHost) {
+      m.addEventListener("viewableChange", function (viewable) { deliver(viewable ? 1 : 0); });
+    } else {
+      document.addEventListener("visibilitychange", function () { deliver(document.visibilityState === "visible" ? 1 : 0); });
+    }
   }
 });
