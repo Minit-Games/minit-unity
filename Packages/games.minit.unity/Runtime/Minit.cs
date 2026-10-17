@@ -13,6 +13,7 @@ namespace MinitGames
         [DllImport("__Internal")] private static extern void MinitLoadingDone();
         [DllImport("__Internal")] private static extern IntPtr MinitGetConfigValue(string key, string defaultValue);
         [DllImport("__Internal")] private static extern IntPtr MinitGetUserData(string defaultValue);
+        [DllImport("__Internal")] private static extern IntPtr MinitTryGetUserData();
         [DllImport("__Internal")] private static extern void MinitFreeBuffer(IntPtr ptr);
         [DllImport("__Internal")] private static extern int MinitShouldShowTutorial();
         [DllImport("__Internal")] private static extern int MinitIsViewable();
@@ -93,6 +94,27 @@ namespace MinitGames
             return result ?? defaultValue;
 #else
             return defaultValue;
+#endif
+        }
+
+        /// <summary>Read the single-slot userData, distinguishing "nothing stored" (returns false, <paramref name="value"/> null)
+        /// from a stored empty string (returns true, <paramref name="value"/> ""). Same sources as <see cref="GetUserData"/>.
+        /// Always false in the editor.</summary>
+        public static bool TryGetUserData(out string value)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            IntPtr ptr = MinitTryGetUserData();
+            if (ptr == IntPtr.Zero)
+            {
+                value = null;
+                return false;
+            }
+            value = Marshal.PtrToStringUTF8(ptr) ?? "";
+            MinitFreeBuffer(ptr);
+            return true;
+#else
+            value = null;
+            return false;
 #endif
         }
 

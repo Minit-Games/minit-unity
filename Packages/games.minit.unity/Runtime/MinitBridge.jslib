@@ -45,6 +45,20 @@ mergeInto(LibraryManager.library, {
     stringToUTF8(val, buffer, size);
     return buffer; // caller frees via MinitFreeBuffer
   },
+  MinitTryGetUserData: function () {
+    var val = null;
+    if (window.minit && window.minit.userData != null) {
+      val = window.minit.userData;
+    } else {
+      var params = new URLSearchParams(window.location.search);
+      if (params.has("userData")) val = params.get("userData");
+    }
+    if (val === null) return 0;
+    var size = lengthBytesUTF8(val) + 1;
+    var buffer = _malloc(size);
+    stringToUTF8(val, buffer, size);
+    return buffer; // caller frees via MinitFreeBuffer
+  },
   MinitFreeBuffer: function (ptr) {
     _free(ptr);
   },
