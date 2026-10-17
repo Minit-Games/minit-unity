@@ -12,6 +12,7 @@ namespace MinitGames
         [DllImport("__Internal")] private static extern IntPtr MinitGetConfigValue(string key, string defaultValue);
         [DllImport("__Internal")] private static extern IntPtr MinitGetUserData(string defaultValue);
         [DllImport("__Internal")] private static extern void MinitFreeBuffer(IntPtr ptr);
+        [DllImport("__Internal")] private static extern int MinitShouldShowTutorial();
 #endif
 
         /// <summary>Submit the final result. Call exactly once when the game ends. Higher score = better by default.
@@ -59,6 +60,17 @@ namespace MinitGames
             return result ?? defaultValue;
 #else
             return defaultValue;
+#endif
+        }
+
+        /// <summary>Whether to run the first-play tutorial. Config key `tutorial` = "1"/"true" forces it on, "0"/"false" forces it off;
+        /// otherwise it is hidden once the host reports the player has already played this Game. Always true in the editor.</summary>
+        public static bool ShouldShowTutorial()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return MinitShouldShowTutorial() != 0;
+#else
+            return true;
 #endif
         }
     }

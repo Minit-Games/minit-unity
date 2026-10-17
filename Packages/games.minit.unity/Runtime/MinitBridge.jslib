@@ -41,5 +41,11 @@ mergeInto(LibraryManager.library, {
   },
   MinitFreeBuffer: function (ptr) {
     _free(ptr);
+  },
+  MinitShouldShowTutorial: function () {
+    var forced = new URLSearchParams(window.location.search).get("tutorial");
+    if (forced === "1" || forced === "true") return 1;
+    if (forced === "0" || forced === "false") return 0;
+    return window.minit && window.minit.hasPlayedGame === true ? 0 : 1;
   }
 });
