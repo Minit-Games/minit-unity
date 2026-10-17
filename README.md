@@ -109,6 +109,8 @@ Submits the final result and triggers the Minit result screen. Call exactly once
 | `userData` | `string?` | Optional player save state to persist for this creator's games. Pass a plain string (serialize it yourself, e.g. JSON). Omit (or pass `null`) to leave the stored value unchanged; pass `""` to clear the slot. Written only at result-report time — there is no standalone save call. |
 
 > **Behaviour change:** `userData: ""` is now a real write that clears the stored value, matching the other Minit SDKs. Earlier versions of this package treated `""` like `null` and left the stored value unchanged — if you relied on that, pass `null` instead.
+>
+> Likewise, `flavorText: ""` is now forwarded to the host as `""` instead of being dropped; pass `null` to omit it.
 
 In the editor and in non-WebGL builds, this logs to the Console instead of posting to the host.
 
