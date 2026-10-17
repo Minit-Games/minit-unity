@@ -1,13 +1,19 @@
 mergeInto(LibraryManager.library, {
-  MinitReportResult: function (score, flavorTextPtr, delay, userDataPtr) {
+  MinitSendResult: function (result, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr) {
     var opts = {};
-    var flavorText = flavorTextPtr ? UTF8ToString(flavorTextPtr) : "";
-    if (flavorText) opts.flavorText = flavorText;
+    if (hasFlavor) opts.flavorText = UTF8ToString(flavorTextPtr);
     if (delay > 0) opts.delay = delay;
-    var userData = userDataPtr ? UTF8ToString(userDataPtr) : "";
-    if (userData) opts.userData = { value: userData }; // omit to leave the host's stored value unchanged
-    if (window.minit && window.minit.reportResult) window.minit.reportResult(score, opts);
-    else console.log("[minit] reportResult", score, opts);
+    if (hasUserData) opts.userData = { value: UTF8ToString(userDataPtr) }; // "" is a real write that clears the slot
+    if (window.minit && window.minit.reportResult) window.minit.reportResult(result, opts);
+    else console.log("[minit] reportResult", result, opts);
+  },
+  MinitReportResult__deps: ["MinitSendResult"],
+  MinitReportResult: function (score, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr) {
+    _MinitSendResult(score, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr);
+  },
+  MinitReportResultString__deps: ["MinitSendResult"],
+  MinitReportResultString: function (resultPtr, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr) {
+    _MinitSendResult(resultPtr ? UTF8ToString(resultPtr) : null, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr);
   },
   MinitLoadingDone: function () {
     if (window.minit && window.minit.loadingDone) window.minit.loadingDone();
@@ -39,7 +45,58 @@ mergeInto(LibraryManager.library, {
     stringToUTF8(val, buffer, size);
     return buffer; // caller frees via MinitFreeBuffer
   },
+  MinitTryGetUserData: function () {
+    var val = null;
+    if (window.minit && window.minit.userData != null) {
+      val = window.minit.userData;
+    } else {
+      var params = new URLSearchParams(window.location.search);
+      if (params.has("userData")) val = params.get("userData");
+    }
+    if (val === null) return 0;
+    var size = lengthBytesUTF8(val) + 1;
+    var buffer = _malloc(size);
+    stringToUTF8(val, buffer, size);
+    return buffer; // caller frees via MinitFreeBuffer
+  },
   MinitFreeBuffer: function (ptr) {
     _free(ptr);
+  },
+  MinitShouldShowTutorial: function () {
+    var forced = new URLSearchParams(window.location.search).get("tutorial");
+    if (forced === "1" || forced === "true") return 1;
+    if (forced === "0" || forced === "false") return 0;
+    return window.minit && window.minit.hasPlayedGame === true ? 0 : 1;
+  },
+  MinitHostViewable: function () {
+    var m = window.minit;
+    if (m && typeof m.isViewable === "function" && typeof m.addEventListener === "function" && typeof m.removeEventListener === "function") {
+      try {
+        return m.isViewable() ? 1 : 0;
+      } catch (e) {}
+    }
+    return -1; // host can't answer: page visibility is the source
+  },
+  MinitIsViewable__deps: ["MinitHostViewable"],
+  MinitIsViewable: function () {
+    var host = _MinitHostViewable();
+    if (host >= 0) return host;
+    return document.visibilityState === "visible" ? 1 : 0;
+  },
+  MinitOnViewableChange__deps: ["MinitHostViewable"],
+  MinitOnViewableChange: function (cb) {
+    var last = _MinitHostViewable();
+    var useHost = last >= 0;
+    if (!useHost) last = document.visibilityState === "visible" ? 1 : 0;
+    var deliver = function (v) {
+      if (v === last) return;
+      last = v;
+      {{{ makeDynCall('vi', 'cb') }}}(v);
+    };
+    if (useHost) {
+      window.minit.addEventListener("viewableChange", function (viewable) { deliver(viewable ? 1 : 0); });
+    } else {
+      document.addEventListener("visibilitychange", function () { deliver(document.visibilityState === "visible" ? 1 : 0); });
+    }
   }
 });
