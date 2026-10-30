@@ -217,6 +217,79 @@ if (Minit.ShouldShowTutorial()) ShowTutorial();
 
 ---
 
+### `Minit.GetMotionQuality()`
+
+```csharp
+public static string GetMotionQuality()
+```
+
+Returns `"full"` or `"reduced"`. The value is resolved in this order:
+
+1. The `?motionQuality=full` or `?motionQuality=reduced` URL override, for testing and preview links.
+2. The host-provided motion quality, when it is one of those values.
+3. `"reduced"` when [`Minit.PrefersReducedMotion()`](#minitprefersreducedmotion) resolves to `true`; otherwise `"full"`.
+
+Other override values, including empty or differently-cased values, are ignored. In the editor and in non-WebGL builds, this always returns `"full"`.
+
+Motion quality is the platform's overall recommendation. Under the default remote config, a low-tier device can still report `"full"` unless OS Reduce Motion is enabled; use [`Minit.GetDeviceTier()`](#minitgetdevicetier) for finer performance tuning such as particle counts.
+
+---
+
+### `Minit.PrefersReducedMotion()`
+
+```csharp
+public static bool PrefersReducedMotion()
+```
+
+Returns whether the player prefers reduced motion. The value is resolved in this order:
+
+1. The `?reducedMotion=1` / `true` or `?reducedMotion=0` / `false` URL override, for testing and preview links.
+2. The host-provided boolean captured from the OS Reduce Motion setting at app launch.
+3. The browser's `prefers-reduced-motion` media query, or `false` when it is unavailable.
+
+Other override values, including empty or differently-cased values, are ignored. In the editor and in non-WebGL builds, this always returns `false`.
+
+---
+
+### `Minit.GetDeviceTier()`
+
+```csharp
+public static string GetDeviceTier()
+```
+
+Returns `"low"`, `"medium"`, `"high"`, or `"unknown"`. The value is resolved in this order:
+
+1. The `?deviceTier=low`, `medium`, `high`, or `unknown` URL override, for testing and preview links.
+2. The host-provided device tier, when it is one of those values.
+3. `"unknown"`.
+
+Other override values, including empty or differently-cased values, are ignored. In the editor and in non-WebGL builds, this always returns `"unknown"`.
+
+The host classifies readable device RAM as `"low"` at 3 GiB or less, `"medium"` at more than 3 GiB and up to 6 GiB, and `"high"` above 6 GiB. It reports `"unknown"` when capabilities cannot be read or time out. You can append the URL overrides above to a web preview to test every tier and motion mode.
+
+```csharp
+using MinitGames;
+using UnityEngine;
+
+public static void TuneParticles(ParticleSystem particles)
+{
+    var main = particles.main;
+    string tier = Minit.GetDeviceTier();
+    main.maxParticles = tier == "low" ? 100 : tier == "medium" ? 250 : 500;
+
+    var emission = particles.emission;
+    emission.rateOverTimeMultiplier *= tier == "low" ? 0.25f : tier == "medium" ? 0.5f : 1f;
+
+    if (Minit.GetMotionQuality() == "reduced")
+    {
+        main.maxParticles /= 2;
+        emission.rateOverTimeMultiplier *= 0.5f;
+    }
+}
+```
+
+---
+
 ### `Minit.IsViewable()`
 
 ```csharp
