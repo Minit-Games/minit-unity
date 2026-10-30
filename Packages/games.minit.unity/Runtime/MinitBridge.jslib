@@ -68,6 +68,37 @@ mergeInto(LibraryManager.library, {
     if (forced === "0" || forced === "false") return 0;
     return window.minit && window.minit.hasPlayedGame === true ? 0 : 1;
   },
+  MinitPrefersReducedMotion: function () {
+    var forced = new URLSearchParams(window.location.search).get("reducedMotion");
+    if (forced === "1" || forced === "true") return 1;
+    if (forced === "0" || forced === "false") return 0;
+    if (window.minit && typeof window.minit.prefersReducedMotion === "boolean") {
+      return window.minit.prefersReducedMotion ? 1 : 0;
+    }
+    return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 0;
+  },
+  MinitGetMotionQuality__deps: ["MinitPrefersReducedMotion"],
+  MinitGetMotionQuality: function () {
+    var forced = new URLSearchParams(window.location.search).get("motionQuality");
+    var val;
+    if (forced === "full" || forced === "reduced") val = forced;
+    else if (window.minit && (window.minit.motionQuality === "full" || window.minit.motionQuality === "reduced")) val = window.minit.motionQuality;
+    else val = _MinitPrefersReducedMotion() ? "reduced" : "full";
+    var size = lengthBytesUTF8(val) + 1;
+    var buffer = _malloc(size);
+    stringToUTF8(val, buffer, size);
+    return buffer;
+  },
+  MinitGetDeviceTier: function () {
+    var forced = new URLSearchParams(window.location.search).get("deviceTier");
+    var val = "unknown";
+    if (forced === "low" || forced === "medium" || forced === "high" || forced === "unknown") val = forced;
+    else if (window.minit && (window.minit.deviceTier === "low" || window.minit.deviceTier === "medium" || window.minit.deviceTier === "high" || window.minit.deviceTier === "unknown")) val = window.minit.deviceTier;
+    var size = lengthBytesUTF8(val) + 1;
+    var buffer = _malloc(size);
+    stringToUTF8(val, buffer, size);
+    return buffer;
+  },
   MinitHostViewable: function () {
     var m = window.minit;
     if (m && typeof m.isViewable === "function" && typeof m.addEventListener === "function" && typeof m.removeEventListener === "function") {

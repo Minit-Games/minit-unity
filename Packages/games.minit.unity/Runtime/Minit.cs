@@ -16,6 +16,9 @@ namespace MinitGames
         [DllImport("__Internal")] private static extern IntPtr MinitTryGetUserData();
         [DllImport("__Internal")] private static extern void MinitFreeBuffer(IntPtr ptr);
         [DllImport("__Internal")] private static extern int MinitShouldShowTutorial();
+        [DllImport("__Internal")] private static extern IntPtr MinitGetMotionQuality();
+        [DllImport("__Internal")] private static extern int MinitPrefersReducedMotion();
+        [DllImport("__Internal")] private static extern IntPtr MinitGetDeviceTier();
         [DllImport("__Internal")] private static extern int MinitIsViewable();
         [DllImport("__Internal")] private static extern void MinitOnViewableChange(Action<int> callback);
 
@@ -126,6 +129,52 @@ namespace MinitGames
             return MinitShouldShowTutorial() != 0;
 #else
             return true;
+#endif
+        }
+
+        /// <summary>Get the resolved motion quality: "full" or "reduced". Always "full" in the editor.</summary>
+        public static string GetMotionQuality()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            IntPtr ptr = MinitGetMotionQuality();
+            try
+            {
+                return Marshal.PtrToStringUTF8(ptr) ?? "full";
+            }
+            finally
+            {
+                MinitFreeBuffer(ptr);
+            }
+#else
+            return "full";
+#endif
+        }
+
+        /// <summary>Whether the player prefers reduced motion. Always false in the editor.</summary>
+        public static bool PrefersReducedMotion()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return MinitPrefersReducedMotion() != 0;
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>Get the device performance tier: "low", "medium", "high", or "unknown". Always "unknown" in the editor.</summary>
+        public static string GetDeviceTier()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            IntPtr ptr = MinitGetDeviceTier();
+            try
+            {
+                return Marshal.PtrToStringUTF8(ptr) ?? "unknown";
+            }
+            finally
+            {
+                MinitFreeBuffer(ptr);
+            }
+#else
+            return "unknown";
 #endif
         }
 
