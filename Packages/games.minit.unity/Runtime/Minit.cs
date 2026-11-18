@@ -21,8 +21,11 @@ namespace MinitGames
         [DllImport("__Internal")] private static extern IntPtr MinitGetDeviceTier();
         [DllImport("__Internal")] private static extern int MinitIsViewable();
         [DllImport("__Internal")] private static extern void MinitOnViewableChange(Action<int> callback);
+        [DllImport("__Internal")] private static extern void MinitRequestDeviceMotionPermission(int requestId, Action<int, int> callback);
 
         private static readonly List<Action<bool>> ViewableSubscribers = new List<Action<bool>>();
+        private static readonly Dictionary<int, Action<string>> DeviceMotionPermissionHandlers = new Dictionary<int, Action<string>>();
+        private static int _nextDeviceMotionRequestId;
         private static bool _viewableBridgeRegistered;
 
         [AOT.MonoPInvokeCallback(typeof(Action<int>))]
@@ -38,6 +41,22 @@ namespace MinitGames
                 {
                     Debug.LogException(e);
                 }
+            }
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(Action<int, int>))]
+        private static void DispatchDeviceMotionPermission(int requestId, int result)
+        {
+            if (!DeviceMotionPermissionHandlers.TryGetValue(requestId, out Action<string> handler)) return;
+            DeviceMotionPermissionHandlers.Remove(requestId);
+            string permission = result == 0 ? "granted" : result == 1 ? "denied" : "unsupported";
+            try
+            {
+                handler(permission);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
             }
         }
 #endif
@@ -203,6 +222,19 @@ namespace MinitGames
             return () => ViewableSubscribers.Remove(handler);
 #else
             return () => { };
+#endif
+        }
+
+        /// <summary>Request device-motion permission on the player's next tap and invoke <paramref name="onResult"/> with "granted", "denied", or "unsupported".
+        /// Always "unsupported" in the editor and in non-WebGL builds.</summary>
+        public static void RequestDeviceMotionPermission(Action<string> onResult)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            int requestId = ++_nextDeviceMotionRequestId;
+            DeviceMotionPermissionHandlers[requestId] = onResult;
+            MinitRequestDeviceMotionPermission(requestId, DispatchDeviceMotionPermission);
+#else
+            onResult("unsupported");
 #endif
         }
     }

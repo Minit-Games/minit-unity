@@ -335,6 +335,32 @@ public class PauseWhenHidden : MonoBehaviour
 
 ---
 
+### `Minit.RequestDeviceMotionPermission(onResult)`
+
+```csharp
+public static void RequestDeviceMotionPermission(Action<string> onResult)
+```
+
+Requests access to device motion and invokes `onResult` with `"granted"`, `"denied"`, or `"unsupported"`. The request runs on — and the callback resolves on — the player's next tap or click because iOS only grants motion access inside a real user gesture. Devices without a motion API return `"unsupported"`; devices that expose motion without requiring permission return `"granted"`; when the device requires permission, both motion and orientation access must be granted. A rejected or failed request returns `"denied"`; this method never throws.
+
+In the editor and in non-WebGL builds, this always returns `"unsupported"` through `onResult` immediately.
+
+```csharp
+using MinitGames;
+using UnityEngine;
+
+Minit.RequestDeviceMotionPermission(result =>
+{
+    if (result == "granted")
+    {
+        Input.gyro.enabled = true;
+        Debug.Log(Input.acceleration);
+    }
+});
+```
+
+---
+
 ### `MinitReady` component
 
 A drop-in `MonoBehaviour` that calls `Minit.LoadingDone()` on the first Update frame after the scene loads. Attach it to any GameObject in your scene. Add `using MinitGames;` if you reference it from code.
