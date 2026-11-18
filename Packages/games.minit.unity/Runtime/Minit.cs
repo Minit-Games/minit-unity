@@ -21,10 +21,11 @@ namespace MinitGames
         [DllImport("__Internal")] private static extern IntPtr MinitGetDeviceTier();
         [DllImport("__Internal")] private static extern int MinitIsViewable();
         [DllImport("__Internal")] private static extern void MinitOnViewableChange(Action<int> callback);
-        [DllImport("__Internal")] private static extern void MinitRequestDeviceMotionPermission(Action<int> callback);
+        [DllImport("__Internal")] private static extern void MinitRequestDeviceMotionPermission(int requestId, Action<int, int> callback);
 
         private static readonly List<Action<bool>> ViewableSubscribers = new List<Action<bool>>();
-        private static readonly Queue<Action<string>> DeviceMotionPermissionHandlers = new Queue<Action<string>>();
+        private static readonly Dictionary<int, Action<string>> DeviceMotionPermissionHandlers = new Dictionary<int, Action<string>>();
+        private static int _nextDeviceMotionRequestId;
         private static bool _viewableBridgeRegistered;
 
         [AOT.MonoPInvokeCallback(typeof(Action<int>))]
@@ -43,10 +44,11 @@ namespace MinitGames
             }
         }
 
-        [AOT.MonoPInvokeCallback(typeof(Action<int>))]
-        private static void DispatchDeviceMotionPermission(int result)
+        [AOT.MonoPInvokeCallback(typeof(Action<int, int>))]
+        private static void DispatchDeviceMotionPermission(int requestId, int result)
         {
-            Action<string> handler = DeviceMotionPermissionHandlers.Dequeue();
+            if (!DeviceMotionPermissionHandlers.TryGetValue(requestId, out Action<string> handler)) return;
+            DeviceMotionPermissionHandlers.Remove(requestId);
             string permission = result == 0 ? "granted" : result == 1 ? "denied" : "unsupported";
             try
             {
@@ -228,8 +230,9 @@ namespace MinitGames
         public static void RequestDeviceMotionPermission(Action<string> onResult)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            DeviceMotionPermissionHandlers.Enqueue(onResult);
-            MinitRequestDeviceMotionPermission(DispatchDeviceMotionPermission);
+            int requestId = ++_nextDeviceMotionRequestId;
+            DeviceMotionPermissionHandlers[requestId] = onResult;
+            MinitRequestDeviceMotionPermission(requestId, DispatchDeviceMotionPermission);
 #else
             onResult("unsupported");
 #endif

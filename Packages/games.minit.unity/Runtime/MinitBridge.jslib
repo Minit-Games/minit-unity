@@ -130,12 +130,12 @@ mergeInto(LibraryManager.library, {
       document.addEventListener("visibilitychange", function () { deliver(document.visibilityState === "visible" ? 1 : 0); });
     }
   },
-  MinitRequestDeviceMotionPermission: function (cb) {
+  MinitRequestDeviceMotionPermission: function (requestId, cb) {
     var handled = false;
     var finish = function (code) {
       if (handled) return;
       handled = true;
-      {{{ makeDynCall('vi', 'cb') }}}(code);
+      {{{ makeDynCall('vii', 'cb') }}}(requestId, code);
     };
     var request = function () {
       document.removeEventListener("touchend", request, true);
