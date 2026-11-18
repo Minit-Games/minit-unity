@@ -129,5 +129,42 @@ mergeInto(LibraryManager.library, {
     } else {
       document.addEventListener("visibilitychange", function () { deliver(document.visibilityState === "visible" ? 1 : 0); });
     }
+  },
+  MinitRequestDeviceMotionPermission: function (cb) {
+    var handled = false;
+    var finish = function (code) {
+      if (handled) return;
+      handled = true;
+      {{{ makeDynCall('vi', 'cb') }}}(code);
+    };
+    var request = function () {
+      document.removeEventListener("touchend", request, true);
+      document.removeEventListener("click", request, true);
+
+      if (typeof DeviceMotionEvent === "undefined") {
+        finish(2);
+        return;
+      }
+      if (typeof DeviceMotionEvent.requestPermission !== "function") {
+        finish(0);
+        return;
+      }
+
+      try {
+        var permissions = [DeviceMotionEvent.requestPermission()];
+        if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+          permissions.push(DeviceOrientationEvent.requestPermission());
+        }
+        Promise.all(permissions).then(function (results) {
+          finish(results.every(function (result) { return result === "granted"; }) ? 0 : 1);
+        }, function () {
+          finish(1);
+        });
+      } catch (e) {
+        finish(1);
+      }
+    };
+    document.addEventListener("touchend", request, true);
+    document.addEventListener("click", request, true);
   }
 });

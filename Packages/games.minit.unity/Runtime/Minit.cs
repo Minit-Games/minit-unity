@@ -21,8 +21,10 @@ namespace MinitGames
         [DllImport("__Internal")] private static extern IntPtr MinitGetDeviceTier();
         [DllImport("__Internal")] private static extern int MinitIsViewable();
         [DllImport("__Internal")] private static extern void MinitOnViewableChange(Action<int> callback);
+        [DllImport("__Internal")] private static extern void MinitRequestDeviceMotionPermission(Action<int> callback);
 
         private static readonly List<Action<bool>> ViewableSubscribers = new List<Action<bool>>();
+        private static readonly Queue<Action<string>> DeviceMotionPermissionHandlers = new Queue<Action<string>>();
         private static bool _viewableBridgeRegistered;
 
         [AOT.MonoPInvokeCallback(typeof(Action<int>))]
@@ -38,6 +40,21 @@ namespace MinitGames
                 {
                     Debug.LogException(e);
                 }
+            }
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(Action<int>))]
+        private static void DispatchDeviceMotionPermission(int result)
+        {
+            Action<string> handler = DeviceMotionPermissionHandlers.Dequeue();
+            string permission = result == 0 ? "granted" : result == 1 ? "denied" : "unsupported";
+            try
+            {
+                handler(permission);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
             }
         }
 #endif
@@ -203,6 +220,18 @@ namespace MinitGames
             return () => ViewableSubscribers.Remove(handler);
 #else
             return () => { };
+#endif
+        }
+
+        /// <summary>Request device-motion permission on the player's next tap and invoke <paramref name="onResult"/> with "granted", "denied", or "unsupported".
+        /// Always "unsupported" in the editor and in non-WebGL builds.</summary>
+        public static void RequestDeviceMotionPermission(Action<string> onResult)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            DeviceMotionPermissionHandlers.Enqueue(onResult);
+            MinitRequestDeviceMotionPermission(DispatchDeviceMotionPermission);
+#else
+            onResult("unsupported");
 #endif
         }
     }
