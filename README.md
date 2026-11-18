@@ -345,6 +345,8 @@ Requests access to device motion and invokes `onResult` with `"granted"`, `"deni
 
 In the editor and in non-WebGL builds, this always returns `"unsupported"` through `onResult` immediately.
 
+`"granted"` only means the browser allows motion access, not that readings will arrive: desktop browsers grant it with no sensor behind it. Switch to tilt once real readings come in, and keep touch controls available for every result, since players can decline. Test tilt on a real phone, on iOS and Android.
+
 ```csharp
 using MinitGames;
 using UnityEngine;
