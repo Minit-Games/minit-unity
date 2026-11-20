@@ -90,7 +90,18 @@ namespace MinitGames
         /// any other value (or a non-finite float) is sent as null, so the host drops the event.</summary>
         public static void Track(string key, IDictionary<string, object> props = null)
         {
-            string propsJson = PropsToJson(props);
+            string propsJson;
+            try
+            {
+                propsJson = PropsToJson(props);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                return;
+            }
+            // Interop would truncate at NUL and could turn an invalid key into a valid one; null makes the host drop it.
+            if (key != null && key.IndexOf('\0') >= 0) key = null;
 #if UNITY_WEBGL && !UNITY_EDITOR
             MinitTrack(key, propsJson);
 #else
