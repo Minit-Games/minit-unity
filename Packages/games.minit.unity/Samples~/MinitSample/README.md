@@ -42,3 +42,5 @@ A minimal "tap to score" game that demonstrates the Minit Games Unity SDK. The p
 | `MinitReady` component | Ships with the SDK. Calls `Minit.LoadingDone()` on the first Update frame. |
 
 The `SampleGame` component reads `_gameDuration` from the Inspector (default: 10 s). Change it to adjust the round length without modifying code.
+
+To record gameplay events for analytics, call `Minit.Track()` — e.g. `Minit.Track("round.end", new Dictionary<string, object> { { "taps", _taps } })` in `EndGame()` (add `using System.Collections.Generic;`). In the editor it logs the event to the Console.

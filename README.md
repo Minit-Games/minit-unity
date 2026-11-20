@@ -116,6 +116,30 @@ In the editor and in non-WebGL builds, this logs to the Console instead of posti
 
 ---
 
+### `Minit.Track(key, props)`
+
+```csharp
+public static void Track(string key, IDictionary<string, object> props = null)
+```
+
+Records a gameplay event for your Game's analytics. Never throws; the host validates and rate-limits, dropping an invalid event.
+
+```csharp
+Minit.Track("level.start");
+Minit.Track("level.complete", new Dictionary<string, object> { { "level", 3 }, { "perfect", true }, { "boss", "slime" } });
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `key` | `string` | Event name: 1–64 characters of `A-Z a-z 0-9 _ . -`. Keys starting with `minit.` are reserved for the platform. |
+| `props` | `IDictionary<string, object>?` | Optional properties, at most 20. Names use the same characters, 1–40 long. Values are a `bool`, any numeric type (`int`, `float`, `double`, …), or a `string` of at most 256 characters. Any other value — `null`, a non-finite float, a nested object, an array — is sent as `null`, so the host drops the whole event. |
+
+The facade forwards the event as-is; the host enforces these limits and its rate limits.
+
+In the editor and in non-WebGL builds, this logs `[Minit] Track("<key>", <props JSON>)` to the Console instead.
+
+---
+
 ### `Minit.GetConfigValue(key, defaultValue)`
 
 ```csharp
