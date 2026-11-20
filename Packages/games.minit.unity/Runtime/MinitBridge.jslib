@@ -15,6 +15,12 @@ mergeInto(LibraryManager.library, {
   MinitReportResultString: function (resultPtr, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr) {
     _MinitSendResult(resultPtr ? UTF8ToString(resultPtr) : null, hasFlavor, flavorTextPtr, delay, hasUserData, userDataPtr);
   },
+  MinitTrack: function (keyPtr, propsJsonPtr) {
+    var key = keyPtr ? UTF8ToString(keyPtr) : null;
+    var props = JSON.parse(UTF8ToString(propsJsonPtr));
+    if (window.minit && window.minit.track) window.minit.track(key, props);
+    else console.log("[minit] track", key, props);
+  },
   MinitLoadingDone: function () {
     if (window.minit && window.minit.loadingDone) window.minit.loadingDone();
   },
