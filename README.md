@@ -122,7 +122,7 @@ In the editor and in non-WebGL builds, this logs to the Console instead of posti
 public static void Track(string key, IDictionary<string, object> props = null)
 ```
 
-Records a gameplay event for your Game's analytics. Never throws; the host validates and rate-limits, dropping an invalid event.
+Records a gameplay event for your Game's analytics. Never throws; the host validates the event and drops an invalid one.
 
 ```csharp
 Minit.Track("level.start");
@@ -131,10 +131,10 @@ Minit.Track("level.complete", new Dictionary<string, object> { { "level", 3 }, {
 
 | Parameter | Type | Description |
 |---|---|---|
-| `key` | `string` | Event name: 1–64 characters of `A-Z a-z 0-9 _ . -`. Keys starting with `minit.` are reserved for the platform. |
-| `props` | `IDictionary<string, object>?` | Optional properties, at most 20. Names use the same characters, 1–40 long. Values are a `bool`, any numeric type (`int`, `float`, `double`, …), or a `string` of at most 256 characters. Any other value — `null`, a non-finite float, a nested object, an array — is sent as `null`, so the host drops the whole event. |
+| `key` | `string` | Event name: any non-empty string. Keys starting with `minit.` are reserved for the platform. |
+| `props` | `IDictionary<string, object>?` | Optional properties; names are any non-empty string. Values are a `bool`, any numeric type (`int`, `float`, `double`, …), or a `string`. Any other value — `null`, a non-finite float, a nested object, an array — is sent as `null`, so the host drops the whole event. |
 
-The facade forwards the event as-is; the host enforces these limits and its rate limits.
+The facade forwards the event as-is; the host validates it. The only limit is a 4 KB budget of events per play (about 70–100 events with 1–2 props); an event that doesn't fit the remaining budget is dropped.
 
 In the editor and in non-WebGL builds, this logs `[Minit] Track("<key>", <props JSON>)` to the Console instead.
 
