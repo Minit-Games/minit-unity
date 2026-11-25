@@ -134,7 +134,7 @@ Minit.Track("level.complete", new Dictionary<string, object> { { "level", 3 }, {
 | `key` | `string` | Event name: any non-empty string. Keys starting with `minit.` are reserved for the platform. |
 | `props` | `IDictionary<string, object>?` | Optional properties; names are any non-empty string. Values are a `bool`, any numeric type (`int`, `float`, `double`, …), or a `string`. Any other value — `null`, a non-finite float, a nested object, an array — is sent as `null`, so the host drops the whole event. |
 
-The facade forwards the event as-is; the host validates it. The only limit is a 4 KB budget of events per play (about 70–100 events with 1–2 props); an event that doesn't fit the remaining budget is dropped.
+The facade forwards the event as-is; the host validates it. The only limit is a 3 KB budget of events per play (about 50–75 events with 1–2 props); an event that doesn't fit the remaining budget is dropped.
 
 In the editor and in non-WebGL builds, this logs `[Minit] Track("<key>", <props JSON>)` to the Console instead.
 
