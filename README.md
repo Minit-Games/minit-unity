@@ -428,7 +428,7 @@ Open **Minit → Build for Minit** from the Unity menu bar. The command:
 5. Zips the build output so `index.html` is at the archive root → `Build/<ProductName>_minit.zip`.
 6. Opens Finder/Explorer at the ZIP location.
 
-Upload the resulting ZIP directly to the [Minit creator console](https://console.minit.games).
+Upload the resulting ZIP directly to the [Minit creator console](https://minit.studio).
 
 ### Player Settings applied
 

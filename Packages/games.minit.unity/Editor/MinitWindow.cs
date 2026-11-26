@@ -10,7 +10,7 @@ namespace MinitGames.Editor
     public class MinitWindow : EditorWindow
     {
         private const string MenuPath = "Minit/Minit";
-        private const string CreatorDashboardUrl = "https://console.minit.games";
+        private const string CreatorDashboardUrl = "https://minit.studio";
 
         [MenuItem(MenuPath)]
         public static void ShowWindow()
