@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text;
 using UnityEngine;
 
 namespace MinitGames
@@ -10,6 +12,7 @@ namespace MinitGames
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern void MinitReportResult(double score, int hasFlavor, string flavorText, int delay, int hasUserData, string userData);
         [DllImport("__Internal")] private static extern void MinitReportResultString(string result, int hasFlavor, string flavorText, int delay, int hasUserData, string userData);
+        [DllImport("__Internal")] private static extern void MinitTrack(string key, string propsJson);
         [DllImport("__Internal")] private static extern void MinitLoadingDone();
         [DllImport("__Internal")] private static extern IntPtr MinitGetConfigValue(string key, string defaultValue);
         [DllImport("__Internal")] private static extern IntPtr MinitGetUserData(string defaultValue);
@@ -81,6 +84,103 @@ namespace MinitGames
 #else
             Debug.Log($"[Minit] ReportResult(\"{result}\", \"{flavorText}\", {delay}, \"{userData}\")");
 #endif
+        }
+
+        /// <summary>Record a gameplay event for analytics. Prop values may be bool, any numeric type, or string;
+        /// any other value (or a non-finite float) is sent as null, so the host drops the event.</summary>
+        public static void Track(string key, IDictionary<string, object> props = null)
+        {
+            string propsJson;
+            try
+            {
+                propsJson = PropsToJson(props);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                return;
+            }
+            // Interop would truncate at NUL and could turn an invalid key into a valid one; null makes the host drop it.
+            if (key != null && key.IndexOf('\0') >= 0) key = null;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            MinitTrack(key, propsJson);
+#else
+            Debug.Log($"[Minit] Track(\"{key}\", {propsJson})");
+#endif
+        }
+
+        private static string PropsToJson(IDictionary<string, object> props)
+        {
+            var json = new StringBuilder("{");
+            if (props != null)
+            {
+                bool first = true;
+                foreach (KeyValuePair<string, object> prop in props)
+                {
+                    if (!first) json.Append(',');
+                    first = false;
+                    AppendJsonString(json, prop.Key);
+                    json.Append(':');
+                    AppendJsonValue(json, prop.Value);
+                }
+            }
+            return json.Append('}').ToString();
+        }
+
+        private static void AppendJsonValue(StringBuilder json, object value)
+        {
+            switch (value)
+            {
+                case bool b:
+                    json.Append(b ? "true" : "false");
+                    break;
+                case string s:
+                    AppendJsonString(json, s);
+                    break;
+                case float f:
+                    json.Append(float.IsNaN(f) || float.IsInfinity(f) ? "null" : f.ToString("R", CultureInfo.InvariantCulture));
+                    break;
+                case double d:
+                    json.Append(double.IsNaN(d) || double.IsInfinity(d) ? "null" : d.ToString("R", CultureInfo.InvariantCulture));
+                    break;
+                case decimal m:
+                    json.Append(m.ToString(CultureInfo.InvariantCulture));
+                    break;
+                case sbyte _:
+                case byte _:
+                case short _:
+                case ushort _:
+                case int _:
+                case uint _:
+                case long _:
+                case ulong _:
+                    json.Append(((IFormattable)value).ToString(null, CultureInfo.InvariantCulture));
+                    break;
+                default:
+                    json.Append("null");
+                    break;
+            }
+        }
+
+        private static void AppendJsonString(StringBuilder json, string s)
+        {
+            json.Append('"');
+            foreach (char c in s)
+            {
+                switch (c)
+                {
+                    case '"': json.Append("\\\""); break;
+                    case '\\': json.Append("\\\\"); break;
+                    case '\n': json.Append("\\n"); break;
+                    case '\r': json.Append("\\r"); break;
+                    case '\t': json.Append("\\t"); break;
+                    default:
+                        if (c < ' ') json.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+                        else json.Append(c);
+                        break;
+                }
+            }
+            json.Append('"');
         }
 
         /// <summary>Signal the host the game is booted and ready to be revealed.</summary>
