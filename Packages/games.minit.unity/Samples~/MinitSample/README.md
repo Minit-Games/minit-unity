@@ -30,7 +30,7 @@ A minimal "tap to score" game that demonstrates the Minit Games Unity SDK. The p
 2. Click **Add Open Scenes** (or drag the sample scene into the list) and ensure it is enabled.
 3. Run **Minit → Build for Minit** from the menu bar.
    - The menu item applies all required WebGL Player Settings automatically and writes a `Build/<ProductName>_minit.zip` at your project root.
-4. Upload the ZIP to the [Minit creator console](https://console.minit.games).
+4. Upload the ZIP to the [Minit creator console](https://minit.studio).
 
 ---
 
